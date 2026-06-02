@@ -14,16 +14,174 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      alerts: {
+        Row: {
+          ack_at: string | null
+          created_at: string
+          id: string
+          recipient: string
+          scheduled_at: string | null
+          sender: string
+          sent_at: string | null
+          status: Database["public"]["Enums"]["alert_status"]
+          task_id: string | null
+          trigger: Database["public"]["Enums"]["alert_trigger"]
+          type: Database["public"]["Enums"]["alert_type"]
+        }
+        Insert: {
+          ack_at?: string | null
+          created_at?: string
+          id?: string
+          recipient: string
+          scheduled_at?: string | null
+          sender: string
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["alert_status"]
+          task_id?: string | null
+          trigger?: Database["public"]["Enums"]["alert_trigger"]
+          type?: Database["public"]["Enums"]["alert_type"]
+        }
+        Update: {
+          ack_at?: string | null
+          created_at?: string
+          id?: string
+          recipient?: string
+          scheduled_at?: string | null
+          sender?: string
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["alert_status"]
+          task_id?: string | null
+          trigger?: Database["public"]["Enums"]["alert_trigger"]
+          type?: Database["public"]["Enums"]["alert_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alerts_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          employee_id: string
+          failed_attempts: number
+          id: string
+          is_active: boolean
+          is_admin: boolean
+          locked_until: string | null
+          name: string
+          phone: string
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          employee_id: string
+          failed_attempts?: number
+          id: string
+          is_active?: boolean
+          is_admin?: boolean
+          locked_until?: string | null
+          name: string
+          phone: string
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          employee_id?: string
+          failed_attempts?: number
+          id?: string
+          is_active?: boolean
+          is_admin?: boolean
+          locked_until?: string | null
+          name?: string
+          phone?: string
+          updated_at?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      tags: {
+        Row: {
+          created_at: string
+          id: string
+          is_default: boolean
+          is_user_tag: boolean
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          is_user_tag?: boolean
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          is_user_tag?: boolean
+          name?: string
+        }
+        Relationships: []
+      }
+      tasks: {
+        Row: {
+          completed: boolean
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          id: string
+          priority: Database["public"]["Enums"]["task_priority"]
+          sort_order: number
+          tags: string[]
+          text: string
+          updated_at: string
+        }
+        Insert: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          priority?: Database["public"]["Enums"]["task_priority"]
+          sort_order?: number
+          tags?: string[]
+          text: string
+          updated_at?: string
+        }
+        Update: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          priority?: Database["public"]["Enums"]["task_priority"]
+          sort_order?: number
+          tags?: string[]
+          text?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      current_username: { Args: never; Returns: string }
+      is_admin: { Args: never; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      alert_status: "pending" | "acknowledged" | "scheduled"
+      alert_trigger: "now" | "scheduled"
+      alert_type: "normal" | "urgent"
+      task_priority: "P1" | "P2" | "P3" | "Daily" | "None"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +308,11 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      alert_status: ["pending", "acknowledged", "scheduled"],
+      alert_trigger: ["now", "scheduled"],
+      alert_type: ["normal", "urgent"],
+      task_priority: ["P1", "P2", "P3", "Daily", "None"],
+    },
   },
 } as const
