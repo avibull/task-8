@@ -85,12 +85,14 @@ export const customLogin = createServerFn({ method: "POST" })
 
     if (signErr || !signIn.session) {
       const newAttempts = (profile.failed_attempts ?? 0) + 1;
-      const updates: Record<string, unknown> = { failed_attempts: newAttempts };
-      if (newAttempts >= 5) {
-        updates.locked_until = new Date(Date.now() + 15 * 60 * 1000).toISOString();
-        updates.failed_attempts = 0;
-      }
-      await supabaseAdmin.from("profiles").update(updates).eq("id", profile.id);
+      const locked = newAttempts >= 5;
+      await supabaseAdmin
+        .from("profiles")
+        .update({
+          failed_attempts: locked ? 0 : newAttempts,
+          locked_until: locked ? new Date(Date.now() + 15 * 60 * 1000).toISOString() : null,
+        })
+        .eq("id", profile.id);
       return {
         ok: false as const,
         code: "bad_pin",
