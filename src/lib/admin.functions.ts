@@ -61,7 +61,9 @@ export const updateUser = createServerFn({ method: "POST" })
   }) => d)
   .handler(async ({ data, context }) => {
     const admin = await ensureAdmin(context.userId);
-    const patch: Record<string, unknown> = {};
+    const patch: {
+      name?: string; phone?: string; role?: UserRole; is_active?: boolean;
+    } = {};
     if (data.name !== undefined) patch.name = data.name.trim();
     if (data.phone !== undefined) patch.phone = data.phone.trim();
     if (data.role !== undefined) patch.role = data.role;
