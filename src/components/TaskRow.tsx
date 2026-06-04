@@ -4,6 +4,8 @@ import type { Alert, Priority, Task } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { PriorityBadge } from "./PriorityBadge";
 import { formatDistanceToNow } from "date-fns";
+import { UserPicker } from "./UserPicker";
+import { TagPicker } from "./TagPicker";
 
 interface Props {
   task: Task;
@@ -11,9 +13,9 @@ interface Props {
   expanded: boolean;
   onToggleComplete: () => void;
   onExpand: () => void;
-  onRemind: () => void;
-  onPing: () => void;
+  onSendAlert: () => void;
   onChangePriority: (p: Priority) => void;
+  onUpdateTags: (tags: string[]) => void;
   onDelete: () => void;
 }
 
@@ -21,9 +23,24 @@ const PRIO_CYCLE: Priority[] = ["None", "P1", "P2", "P3", "Daily"];
 
 export function TaskRow({
   task, alerts, expanded, onToggleComplete, onExpand,
-  onRemind, onPing, onChangePriority, onDelete,
+  onSendAlert, onChangePriority, onUpdateTags, onDelete,
 }: Props) {
   const taskAlerts = alerts.filter((a) => a.task_id === task.id);
+  const [showAssign, setShowAssign] = useState(false);
+  const [showTags, setShowTags] = useState(false);
+
+  const userTags = task.tags.filter((t) => t.startsWith("@")).map((t) => t.slice(1));
+  const plainTags = task.tags.filter((t) => !t.startsWith("@"));
+
+  const toggleUser = (u: string) => {
+    const at = `@${u}`;
+    const next = task.tags.includes(at) ? task.tags.filter((t) => t !== at) : [...task.tags, at];
+    onUpdateTags(next);
+  };
+  const togglePlain = (name: string) => {
+    const next = task.tags.includes(name) ? task.tags.filter((t) => t !== name) : [...task.tags, name];
+    onUpdateTags(next);
+  };
 
   return (
     <div className="border-b border-border">
@@ -57,19 +74,33 @@ export function TaskRow({
       {expanded && (
         <div className="border-t border-border bg-panel-2 px-3 py-3">
           <div className="mb-2 grid grid-cols-4 gap-1.5">
-            <button onClick={onRemind} className="mono rounded-[3px] border border-border bg-panel px-2 py-2 text-[10px] uppercase">Remind</button>
-            <button onClick={onPing} className="mono rounded-[3px] border border-border bg-panel px-2 py-2 text-[10px] uppercase">Ping now</button>
-            <button
-              onClick={() => {
-                const i = PRIO_CYCLE.indexOf(task.priority);
-                onChangePriority(PRIO_CYCLE[(i + 1) % PRIO_CYCLE.length]);
-              }}
-              className="mono rounded-[3px] border border-border bg-panel px-2 py-2 text-[10px] uppercase"
-            >
-              Prio: {task.priority}
-            </button>
+            <button onClick={onSendAlert} className="mono rounded-[3px] border border-accent-lime bg-panel px-2 py-2 text-[10px] uppercase text-accent-lime">Send alert</button>
+            <button onClick={() => setShowAssign(true)} className="mono rounded-[3px] border border-border bg-panel px-2 py-2 text-[10px] uppercase">Assign</button>
+            <button onClick={() => setShowTags(true)} className="mono rounded-[3px] border border-border bg-panel px-2 py-2 text-[10px] uppercase">Tags</button>
             <button onClick={onDelete} className="mono rounded-[3px] border border-[color:var(--p1)] bg-panel px-2 py-2 text-[10px] uppercase text-[color:var(--p1)]">Delete</button>
           </div>
+
+          <button
+            onClick={() => {
+              const i = PRIO_CYCLE.indexOf(task.priority);
+              onChangePriority(PRIO_CYCLE[(i + 1) % PRIO_CYCLE.length]);
+            }}
+            className="mono mb-2 w-full rounded-[3px] border border-border bg-panel px-2 py-1.5 text-[10px] uppercase"
+          >
+            Priority: {task.priority} (tap to cycle)
+          </button>
+
+          {(userTags.length > 0 || plainTags.length > 0) && (
+            <div className="mb-2 flex flex-wrap gap-1">
+              {userTags.map((u) => (
+                <span key={u} className="mono rounded-[3px] border border-accent-lime px-1.5 py-0.5 text-[10px] text-accent-lime">@{u}</span>
+              ))}
+              {plainTags.map((t) => (
+                <span key={t} className="mono rounded-[3px] border border-border px-1.5 py-0.5 text-[10px] text-dim">{t}</span>
+              ))}
+            </div>
+          )}
+
           <div className="mono text-[10px] text-dim">
             created {formatDistanceToNow(new Date(task.created_at), { addSuffix: true })} by @{task.created_by}
           </div>
@@ -94,6 +125,23 @@ export function TaskRow({
             </div>
           )}
         </div>
+      )}
+
+      {showAssign && (
+        <UserPicker
+          title="ASSIGN USERS"
+          selected={userTags}
+          onToggle={toggleUser}
+          onClose={() => setShowAssign(false)}
+        />
+      )}
+      {showTags && (
+        <TagPicker
+          title="TAGS"
+          selected={plainTags}
+          onToggle={togglePlain}
+          onClose={() => setShowTags(false)}
+        />
       )}
     </div>
   );
