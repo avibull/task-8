@@ -93,6 +93,7 @@ export function useAlerts() {
       )
       .subscribe();
     return () => {
+      clearInterval(poll);
       supabase.removeChannel(channel);
       repeatTimers.current.forEach((t) => clearInterval(t));
       stopTimers.current.forEach((t) => clearTimeout(t));
