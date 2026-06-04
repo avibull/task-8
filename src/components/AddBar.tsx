@@ -18,7 +18,7 @@ export function AddBar({ onAdd }: Props) {
   const submit = () => {
     if (!val.trim()) return;
     const final = [...users.map((u) => `@${u}`), ...tags];
-    onAdd(val, final.length ? final : ["today"]);
+    onAdd(val, final);
     setVal("");
     setUsers([]);
     setTags([]);
