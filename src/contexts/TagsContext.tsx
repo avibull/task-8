@@ -58,11 +58,9 @@ export function TagsProvider({ children }: { children: ReactNode }) {
           await refetch();
         },
         remove: async (id) => {
-          // Find tag name first so we can scrub it from tasks
           const t = tags.find((x) => x.id === id);
-          if (!t || t.is_default || t.is_user_tag) return;
+          if (!t || t.is_user_tag) return;
           await supabase.from("tags").delete().eq("id", id);
-          // Pull tasks that have it and remove
           const { data: hits } = await supabase
             .from("tasks")
             .select("id, tags")
