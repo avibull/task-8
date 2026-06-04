@@ -71,10 +71,10 @@ export type Database = {
           failed_attempts: number
           id: string
           is_active: boolean
-          is_admin: boolean
           locked_until: string | null
           name: string
           phone: string
+          role: Database["public"]["Enums"]["user_role"]
           updated_at: string
           username: string
         }
@@ -84,10 +84,10 @@ export type Database = {
           failed_attempts?: number
           id: string
           is_active?: boolean
-          is_admin?: boolean
           locked_until?: string | null
           name: string
           phone: string
+          role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
           username: string
         }
@@ -97,10 +97,10 @@ export type Database = {
           failed_attempts?: number
           id?: string
           is_active?: boolean
-          is_admin?: boolean
           locked_until?: string | null
           name?: string
           phone?: string
+          role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
           username?: string
         }
@@ -174,14 +174,24 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      current_role_value: {
+        Args: never
+        Returns: Database["public"]["Enums"]["user_role"]
+      }
       current_username: { Args: never; Returns: string }
+      has_role: {
+        Args: { _role: Database["public"]["Enums"]["user_role"] }
+        Returns: boolean
+      }
       is_admin: { Args: never; Returns: boolean }
+      is_manager_or_admin: { Args: never; Returns: boolean }
     }
     Enums: {
       alert_status: "pending" | "acknowledged" | "scheduled"
       alert_trigger: "now" | "scheduled"
       alert_type: "normal" | "urgent"
       task_priority: "P1" | "P2" | "P3" | "Daily" | "None"
+      user_role: "regular" | "manager" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -313,6 +323,7 @@ export const Constants = {
       alert_trigger: ["now", "scheduled"],
       alert_type: ["normal", "urgent"],
       task_priority: ["P1", "P2", "P3", "Daily", "None"],
+      user_role: ["regular", "manager", "admin"],
     },
   },
 } as const

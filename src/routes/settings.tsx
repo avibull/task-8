@@ -4,6 +4,7 @@ import { ArrowLeft, Trash2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTags } from "@/contexts/TagsContext";
 import { changePin } from "@/lib/bootstrap.functions";
+import { canManageTags, canManageUsers } from "@/lib/types";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -45,8 +46,9 @@ function SettingsPage() {
 
   if (!profile) return null;
 
-  const customTags = tags.filter((t) => !t.is_default && !t.is_user_tag);
-  const defaults = tags.filter((t) => t.is_default);
+  const showTags = canManageTags(profile.role);
+  const showAdmin = canManageUsers(profile.role);
+  const manageableTags = tags.filter((t) => !t.is_user_tag);
 
   return (
     <div className="min-h-screen bg-background">
@@ -62,6 +64,7 @@ function SettingsPage() {
             <div><span className="text-dim">id · </span>{profile.employee_id}</div>
             <div><span className="text-dim">user · </span>@{profile.username}</div>
             <div><span className="text-dim">phone · </span>{profile.phone}</div>
+            <div><span className="text-dim">role · </span>{profile.role}</div>
           </div>
           <div className="mt-3 space-y-2">
             <PinInput value={oldPin} onChange={setOldPin} placeholder="Old PIN" />
@@ -89,48 +92,40 @@ function SettingsPage() {
           </div>
         </Section>
 
-        <Section title="Tags">
-          <div className="mb-2 flex gap-2">
-            <input
-              value={newTag}
-              onChange={(e) => setNewTag(e.target.value)}
-              placeholder="new-tag"
-              className="mono flex-1 rounded-[3px] border border-border bg-panel px-3 py-2 text-xs"
-            />
-            <button
-              onClick={async () => { await addCustom(newTag); setNewTag(""); }}
-              className="mono rounded-[3px] bg-accent-lime px-3 py-2 text-xs font-bold uppercase text-background"
-            >Add</button>
-          </div>
+        {showTags && (
+          <Section title="Tags">
+            <div className="mb-2 flex gap-2">
+              <input
+                value={newTag}
+                onChange={(e) => setNewTag(e.target.value)}
+                placeholder="new-tag"
+                className="mono flex-1 rounded-[3px] border border-border bg-panel px-3 py-2 text-xs"
+              />
+              <button
+                onClick={async () => { await addCustom(newTag); setNewTag(""); }}
+                className="mono rounded-[3px] bg-accent-lime px-3 py-2 text-xs font-bold uppercase text-background"
+              >Add</button>
+            </div>
+            {manageableTags.length === 0 && <div className="mono text-[11px] text-dim">none yet</div>}
+            <div className="space-y-1">
+              {manageableTags.map((t) => (
+                <div key={t.id} className="mono flex items-center justify-between rounded-[3px] border border-border bg-panel px-3 py-2 text-xs">
+                  <span>{t.name}</span>
+                  <button onClick={() => remove(t.id)} className="text-[color:var(--p1)]"><Trash2 size={14} /></button>
+                </div>
+              ))}
+            </div>
+          </Section>
+        )}
 
-          <div className="mono mb-1 text-[10px] uppercase tracking-wider text-dim">Defaults (locked)</div>
-          <div className="mb-3 flex flex-wrap gap-1.5">
-            {defaults.map((t) => (
-              <span key={t.id} className="mono rounded-[3px] border border-border bg-panel px-2 py-1 text-[11px] text-dim">{t.name}</span>
-            ))}
-          </div>
-
-          <div className="mono mb-1 text-[10px] uppercase tracking-wider text-dim">Custom</div>
-          {customTags.length === 0 && <div className="mono text-[11px] text-dim">none yet</div>}
-          <div className="space-y-1">
-            {customTags.map((t) => (
-              <div key={t.id} className="mono flex items-center justify-between rounded-[3px] border border-border bg-panel px-3 py-2 text-xs">
-                <span>{t.name}</span>
-                <button onClick={() => remove(t.id)} className="text-[color:var(--p1)]"><Trash2 size={14} /></button>
-              </div>
-            ))}
-          </div>
-        </Section>
-
-        {profile.is_admin && (
+        {showAdmin && (
           <Section title="Admin">
-            <button
-              disabled
-              className="mono w-full rounded-[3px] border border-border bg-panel px-3 py-2 text-xs uppercase text-dim"
-              title="Coming soon"
+            <Link
+              to="/admin"
+              className="mono block w-full rounded-[3px] border border-accent-lime bg-panel px-3 py-2 text-center text-xs uppercase text-accent-lime"
             >
-              Manage users (coming soon)
-            </button>
+              Manage users
+            </Link>
           </Section>
         )}
 

@@ -32,7 +32,7 @@ export const bootstrapAdmin = createServerFn({ method: "POST" }).handler(async (
     name: "Admin",
     username: "admin",
     phone: "+919812345678",
-    is_admin: true,
+    role: "admin",
     is_active: true,
   });
   if (pErr) throw new Error(pErr.message);
