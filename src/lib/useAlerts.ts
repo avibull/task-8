@@ -57,6 +57,18 @@ export function useAlerts() {
   useEffect(() => {
     if (!profile) return;
     refetch();
+    // Poll: flip due 'scheduled' alerts I sent into 'pending' so realtime delivers them.
+    const tick = async () => {
+      const nowIso = new Date().toISOString();
+      await supabase
+        .from("alerts")
+        .update({ status: "pending", sent_at: nowIso })
+        .eq("sender", profile.username)
+        .eq("status", "scheduled")
+        .lte("scheduled_at", nowIso);
+    };
+    tick();
+    const poll = setInterval(tick, 30_000);
     const channel = supabase
       .channel(`alerts:${profile.username}`)
       .on(
