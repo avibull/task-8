@@ -38,10 +38,24 @@ export function useTasks() {
 
   const create = async (text: string, explicitTags?: string[]) => {
     if (!profile || !text.trim()) return;
-    // parse @username tags from text
     const at = Array.from(text.matchAll(/@([a-z0-9_-]+)/gi)).map((m) => `@${m[1].toLowerCase()}`);
-    const base = explicitTags && explicitTags.length > 0 ? explicitTags : ["today"];
-    const tags = Array.from(new Set([...base, ...at]));
+    let base: string[] = [];
+    if (explicitTags && explicitTags.length > 0) {
+      base = explicitTags;
+    } else {
+      // Default to "today" only if it still exists
+      const { data: today } = await supabase.from("tags").select("name").eq("name", "today").maybeSingle();
+      if (today) base = ["today"];
+    }
+    // Filter out any non-@ tag that no longer exists
+    const nonAt = Array.from(new Set([...base, ...at])).filter((t) => !t.startsWith("@"));
+    let existingNonAt: string[] = nonAt;
+    if (nonAt.length > 0) {
+      const { data: rows } = await supabase.from("tags").select("name").in("name", nonAt);
+      const ok = new Set((rows ?? []).map((r) => r.name));
+      existingNonAt = nonAt.filter((t) => ok.has(t));
+    }
+    const tags = Array.from(new Set([...existingNonAt, ...at]));
     await supabase.from("tasks").insert({
       text: text.trim(),
       priority: "None",
