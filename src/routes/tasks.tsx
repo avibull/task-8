@@ -20,7 +20,7 @@ function TasksPage() {
   const { alerts, acknowledge, send } = useAlerts();
   const [filter, setFilter] = useState("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [sheet, setSheet] = useState<{ task: Task; mode: "ping" | "remind" } | null>(null);
+  const [sheetTask, setSheetTask] = useState<Task | null>(null);
   const [alertsOpen, setAlertsOpen] = useState(false);
 
   useEffect(() => {
@@ -40,6 +40,19 @@ function TasksPage() {
   if (loading || !profile) {
     return <div className="mono flex min-h-screen items-center justify-center bg-background text-xs text-dim">loading…</div>;
   }
+
+  const rowProps = (t: Task) => ({
+    key: t.id,
+    task: t,
+    alerts,
+    expanded: expandedId === t.id,
+    onToggleComplete: () => toggle(t),
+    onExpand: () => setExpandedId(expandedId === t.id ? null : t.id),
+    onSendAlert: () => setSheetTask(t),
+    onChangePriority: (p: Task["priority"]) => update(t.id, { priority: p }),
+    onUpdateTags: (tags: string[]) => update(t.id, { tags }),
+    onDelete: () => { remove(t.id); setExpandedId(null); },
+  });
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -67,50 +80,23 @@ function TasksPage() {
       </header>
 
       <FilterBar active={filter} onChange={setFilter} />
-      <AddBar onAdd={create} />
+      <AddBar onAdd={(text, tags) => create(text, tags)} />
 
       <main className="flex-1 overflow-y-auto">
         <SectionHeader label="Active" count={active.length} />
-        {active.map((t) => (
-          <TaskRow
-            key={t.id}
-            task={t}
-            alerts={alerts}
-            expanded={expandedId === t.id}
-            onToggleComplete={() => toggle(t)}
-            onExpand={() => setExpandedId(expandedId === t.id ? null : t.id)}
-            onRemind={() => setSheet({ task: t, mode: "remind" })}
-            onPing={() => setSheet({ task: t, mode: "ping" })}
-            onChangePriority={(p) => update(t.id, { priority: p })}
-            onDelete={() => { remove(t.id); setExpandedId(null); }}
-          />
-        ))}
+        {active.map((t) => (<TaskRow {...rowProps(t)} />))}
 
         <SectionHeader label="Done" count={done.length} />
-        {done.map((t) => (
-          <TaskRow
-            key={t.id}
-            task={t}
-            alerts={alerts}
-            expanded={expandedId === t.id}
-            onToggleComplete={() => toggle(t)}
-            onExpand={() => setExpandedId(expandedId === t.id ? null : t.id)}
-            onRemind={() => setSheet({ task: t, mode: "remind" })}
-            onPing={() => setSheet({ task: t, mode: "ping" })}
-            onChangePriority={(p) => update(t.id, { priority: p })}
-            onDelete={() => { remove(t.id); setExpandedId(null); }}
-          />
-        ))}
+        {done.map((t) => (<TaskRow {...rowProps(t)} />))}
         <div className="h-24" />
       </main>
 
-      {sheet && (
+      {sheetTask && (
         <ActionSheet
-          task={sheet.task}
-          mode={sheet.mode}
-          onClose={() => setSheet(null)}
+          task={sheetTask}
+          onClose={() => setSheetTask(null)}
           onSend={async (params) => {
-            await send({ task_id: sheet.task.id, ...params });
+            await send({ task_id: sheetTask.id, ...params });
           }}
         />
       )}
@@ -123,7 +109,7 @@ function TasksPage() {
           onAck={acknowledge}
           onRepingAlert={(a: Alert) => {
             const t = tasks.find((x) => x.id === a.task_id);
-            if (t) { setAlertsOpen(false); setSheet({ task: t, mode: "ping" }); }
+            if (t) { setAlertsOpen(false); setSheetTask(t); }
           }}
         />
       )}
