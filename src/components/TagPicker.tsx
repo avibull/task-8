@@ -1,24 +1,25 @@
+import { useAuth } from "@/contexts/AuthContext";
 import { useTags } from "@/contexts/TagsContext";
+import { canManageTags } from "@/lib/types";
 import { PickerSheet } from "./PickerSheet";
 
 interface Props {
-  /** Currently selected tag names (non-@). */
   selected: string[];
   onToggle: (name: string) => void;
   onClose: () => void;
   title?: string;
 }
 
-/** Reusable tag picker (non-user tags only). */
+/** Reusable tag picker (non-@ tags). Inline add/delete for managers/admins. */
 export function TagPicker({ selected, onToggle, onClose, title = "TAGS" }: Props) {
-  const { tags } = useTags();
+  const { tags, addCustom, remove } = useTags();
+  const { profile } = useAuth();
+  const canManage = canManageTags(profile?.role);
+
   const items = tags
     .filter((t) => !t.is_user_tag)
-    .sort((a, b) => {
-      if (a.is_default !== b.is_default) return a.is_default ? -1 : 1;
-      return a.name.localeCompare(b.name);
-    })
-    .map((t) => ({ key: t.name, label: t.name, sub: t.is_default ? "default" : "custom" }));
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((t) => ({ key: t.name, label: t.name }));
 
   return (
     <PickerSheet
@@ -28,6 +29,13 @@ export function TagPicker({ selected, onToggle, onClose, title = "TAGS" }: Props
       selectedKeys={selected}
       onToggle={onToggle}
       onClose={onClose}
+      canManage={canManage}
+      onAdd={canManage ? async (name) => { await addCustom(name); } : undefined}
+      onDelete={canManage ? async (name) => {
+        const t = tags.find((x) => x.name === name);
+        if (t) await remove(t.id);
+      } : undefined}
+      addPlaceholder="+ New tag..."
     />
   );
 }
