@@ -36,11 +36,12 @@ export function useTasks() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.username]);
 
-  const create = async (text: string) => {
+  const create = async (text: string, explicitTags?: string[]) => {
     if (!profile || !text.trim()) return;
     // parse @username tags from text
     const at = Array.from(text.matchAll(/@([a-z0-9_-]+)/gi)).map((m) => `@${m[1].toLowerCase()}`);
-    const tags = Array.from(new Set(["today", ...at]));
+    const base = explicitTags && explicitTags.length > 0 ? explicitTags : ["today"];
+    const tags = Array.from(new Set([...base, ...at]));
     await supabase.from("tasks").insert({
       text: text.trim(),
       priority: "None",
