@@ -5,13 +5,10 @@ import { ArrowLeft, Pencil, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { listUsers, createUser, updateUser, deleteUser } from "@/lib/admin.functions";
-import type { Profile, UserRole } from "@/lib/types";
+import type { Profile } from "@/lib/types";
 import { canManageUsers } from "@/lib/types";
-import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin")({ component: AdminPage });
-
-const ROLES: UserRole[] = ["regular", "manager", "admin"];
 
 function AdminPage() {
   const nav = useNavigate();
@@ -37,15 +34,15 @@ function AdminPage() {
 
   useEffect(() => {
     if (!loading && !profile) nav({ to: "/login", replace: true });
-    if (!loading && profile && !canManageUsers(profile.role)) nav({ to: "/tasks", replace: true });
+    if (!loading && profile && !canManageUsers(profile)) nav({ to: "/tasks", replace: true });
   }, [loading, profile, nav]);
 
   useEffect(() => {
-    if (profile && canManageUsers(profile.role)) refresh();
+    if (profile && canManageUsers(profile)) refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.id]);
 
-  if (!profile || !canManageUsers(profile.role)) return null;
+  if (!profile || !canManageUsers(profile)) return null;
 
   const handleDelete = async (u: Profile) => {
     if (u.id === profile.id) return toast.error("Can't delete yourself");
@@ -81,7 +78,7 @@ function AdminPage() {
                 <th className="px-3 py-2">ID</th>
                 <th className="px-3 py-2">Name</th>
                 <th className="px-3 py-2">User</th>
-                <th className="px-3 py-2">Role</th>
+                <th className="px-3 py-2">Access</th>
                 <th className="px-3 py-2">Active</th>
                 <th className="px-3 py-2 text-right">Actions</th>
               </tr>
@@ -92,7 +89,12 @@ function AdminPage() {
                   <td className="px-3 py-2">{u.employee_id}</td>
                   <td className="px-3 py-2">{u.name}</td>
                   <td className="px-3 py-2 text-accent-lime">@{u.username}</td>
-                  <td className="px-3 py-2"><RoleBadge role={u.role} /></td>
+                  <td className="px-3 py-2">
+                    <div className="flex gap-1">
+                      {u.is_admin && <span className="rounded-[3px] border border-accent-lime bg-accent-lime/15 px-1.5 py-0.5 text-[9px] uppercase text-accent-lime">admin</span>}
+                      {u.can_edit_tags && <span className="rounded-[3px] border border-[#3b82f6] bg-[#3b82f6]/15 px-1.5 py-0.5 text-[9px] uppercase text-[#3b82f6]">tags</span>}
+                    </div>
+                  </td>
                   <td className="px-3 py-2">{u.is_active ? "yes" : "no"}</td>
                   <td className="px-3 py-2">
                     <div className="flex justify-end gap-1">
@@ -122,7 +124,7 @@ function AdminPage() {
         <UserModal
           onClose={() => setShowAdd(false)}
           onSubmit={async (data) => {
-            const res = await createFn({ data: data as Parameters<typeof createFn>[0]["data"] });
+            const res = await createFn({ data });
             if (!res.ok) { toast.error(res.message); return false; }
             toast.success("User created");
             await refresh();
@@ -140,7 +142,8 @@ function AdminPage() {
               id: editing.id,
               name: data.name,
               phone: data.phone,
-              role: data.role,
+              is_admin: data.is_admin,
+              can_edit_tags: data.can_edit_tags,
               new_pin: data.pin || undefined,
             } });
             if (!res.ok) { toast.error(res.message); return false; }
@@ -154,25 +157,12 @@ function AdminPage() {
   );
 }
 
-function RoleBadge({ role }: { role: UserRole }) {
-  const styles: Record<UserRole, string> = {
-    regular: "border-border bg-panel-2 text-dim",
-    manager: "border-[#3b82f6] bg-[#3b82f6]/15 text-[#3b82f6]",
-    admin: "border-accent-lime bg-accent-lime/15 text-accent-lime",
-  };
-  return (
-    <span className={cn("mono rounded-[3px] border px-1.5 py-0.5 text-[10px] uppercase", styles[role])}>
-      {role}
-    </span>
-  );
-}
-
 interface UserModalProps {
   user?: Profile;
   onClose: () => void;
   onSubmit: (data: {
     employee_id: string; name: string; username: string; phone: string;
-    pin: string; role: UserRole;
+    pin: string; is_admin: boolean; can_edit_tags: boolean;
   }) => Promise<boolean>;
 }
 
@@ -183,7 +173,8 @@ function UserModal({ user, onClose, onSubmit }: UserModalProps) {
   const [username, setUsername] = useState(user?.username ?? "");
   const [phone, setPhone] = useState(user?.phone ?? "");
   const [pin, setPin] = useState("");
-  const [role, setRole] = useState<UserRole>(user?.role ?? "regular");
+  const [isAdmin, setIsAdmin] = useState(user?.is_admin ?? false);
+  const [canTags, setCanTags] = useState(user?.can_edit_tags ?? false);
   const [busy, setBusy] = useState(false);
 
   const valid = useMemo(() => {
@@ -195,7 +186,11 @@ function UserModal({ user, onClose, onSubmit }: UserModalProps) {
   const submit = async () => {
     if (!valid) return;
     setBusy(true);
-    const ok = await onSubmit({ employee_id, name, username, phone, pin, role });
+    const ok = await onSubmit({
+      employee_id, name, username, phone, pin,
+      is_admin: isAdmin,
+      can_edit_tags: isAdmin || canTags,
+    });
     setBusy(false);
     if (ok) onClose();
   };
@@ -218,15 +213,28 @@ function UserModal({ user, onClose, onSubmit }: UserModalProps) {
           <Field label="Username (no @)" value={username} onChange={setUsername} disabled={isEdit} placeholder="alice" />
           <Field label="Phone" value={phone} onChange={setPhone} placeholder="+91..." />
           <Field label={isEdit ? "New PIN (optional)" : "PIN"} value={pin} onChange={(v) => setPin(v.replace(/\D/g, ""))} type="password" maxLength={6} />
-          <div>
-            <label className="mono mb-1 block text-[10px] uppercase tracking-wider text-dim">Role</label>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value as UserRole)}
-              className="mono w-full rounded-[3px] border border-border bg-panel-2 px-3 py-2 text-xs uppercase"
-            >
-              {ROLES.map((r) => (<option key={r} value={r}>{r}</option>))}
-            </select>
+          <div className="space-y-1.5 pt-1">
+            <label className="mono flex cursor-pointer items-center gap-2 text-xs">
+              <input
+                type="checkbox"
+                checked={isAdmin}
+                onChange={(e) => setIsAdmin(e.target.checked)}
+                className="h-4 w-4 accent-[color:var(--accent-lime)]"
+              />
+              <span>Admin</span>
+              <span className="text-[10px] text-dim">— can manage users</span>
+            </label>
+            <label className={`mono flex items-center gap-2 text-xs ${isAdmin ? "opacity-60" : "cursor-pointer"}`}>
+              <input
+                type="checkbox"
+                checked={isAdmin || canTags}
+                disabled={isAdmin}
+                onChange={(e) => setCanTags(e.target.checked)}
+                className="h-4 w-4 accent-[color:var(--accent-lime)]"
+              />
+              <span>Tag edit access</span>
+              <span className="text-[10px] text-dim">— can add / delete tags</span>
+            </label>
           </div>
         </div>
         <div className="border-t border-border p-3">

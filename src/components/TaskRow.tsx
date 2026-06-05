@@ -6,6 +6,7 @@ import { PriorityBadge } from "./PriorityBadge";
 import { formatDistanceToNow } from "date-fns";
 import { UserPicker } from "./UserPicker";
 import { TagPicker } from "./TagPicker";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Props {
   task: Task;
@@ -16,6 +17,7 @@ interface Props {
   onSendAlert: () => void;
   onChangePriority: (p: Priority) => void;
   onUpdateTags: (tags: string[]) => void;
+  onUpdateAssignees: (assigned_to: string[]) => void;
   onDelete: () => void;
 }
 
@@ -23,19 +25,20 @@ const PRIO_CYCLE: Priority[] = ["None", "P1", "P2", "P3", "Daily"];
 
 export function TaskRow({
   task, alerts, expanded, onToggleComplete, onExpand,
-  onSendAlert, onChangePriority, onUpdateTags, onDelete,
+  onSendAlert, onChangePriority, onUpdateTags, onUpdateAssignees, onDelete,
 }: Props) {
+  const { profile } = useAuth();
   const taskAlerts = alerts.filter((a) => a.task_id === task.id);
   const [showAssign, setShowAssign] = useState(false);
   const [showTags, setShowTags] = useState(false);
 
-  const userTags = task.tags.filter((t) => t.startsWith("@")).map((t) => t.slice(1));
-  const plainTags = task.tags.filter((t) => !t.startsWith("@"));
+  const canAssign = !!profile && (profile.is_admin || task.created_by === profile.username);
 
   const toggleUser = (u: string) => {
-    const at = `@${u}`;
-    const next = task.tags.includes(at) ? task.tags.filter((t) => t !== at) : [...task.tags, at];
-    onUpdateTags(next);
+    const next = task.assigned_to.includes(u)
+      ? task.assigned_to.filter((x) => x !== u)
+      : [...task.assigned_to, u];
+    onUpdateAssignees(next);
   };
   const togglePlain = (name: string) => {
     const next = task.tags.includes(name) ? task.tags.filter((t) => t !== name) : [...task.tags, name];
@@ -64,9 +67,12 @@ export function TaskRow({
         <div className={cn("min-w-0 flex-1 text-sm", task.completed && "line-through")}>
           {task.text}
         </div>
-        <div className="mono flex shrink-0 gap-1 text-[10px]">
+        <div className="mono flex shrink-0 flex-wrap items-center justify-end gap-x-1.5 gap-y-0.5 text-[10px]">
+          {task.assigned_to.slice(0, 3).map((u) => (
+            <span key={`a:${u}`} className="text-accent-lime underline decoration-dotted underline-offset-2">@{u}</span>
+          ))}
           {task.tags.slice(0, 3).map((t) => (
-            <span key={t} className={cn(t.startsWith("@") ? "text-accent-lime" : "text-dim")}>{t}</span>
+            <span key={`t:${t}`} className="text-dim">#{t}</span>
           ))}
         </div>
       </div>
@@ -75,7 +81,15 @@ export function TaskRow({
         <div className="border-t border-border bg-panel-2 px-3 py-3">
           <div className="mb-2 grid grid-cols-4 gap-1.5">
             <button onClick={onSendAlert} className="mono rounded-[3px] border border-accent-lime bg-panel px-2 py-2 text-[10px] uppercase text-accent-lime">Send alert</button>
-            <button onClick={() => setShowAssign(true)} className="mono rounded-[3px] border border-border bg-panel px-2 py-2 text-[10px] uppercase">Assign</button>
+            <button
+              onClick={() => canAssign && setShowAssign(true)}
+              disabled={!canAssign}
+              title={canAssign ? "" : "Only the assigner can change this."}
+              className={cn(
+                "mono rounded-[3px] border border-border bg-panel px-2 py-2 text-[10px] uppercase",
+                !canAssign && "opacity-40 cursor-not-allowed"
+              )}
+            >Assign</button>
             <button onClick={() => setShowTags(true)} className="mono rounded-[3px] border border-border bg-panel px-2 py-2 text-[10px] uppercase">Tags</button>
             <button onClick={onDelete} className="mono rounded-[3px] border border-[color:var(--p1)] bg-panel px-2 py-2 text-[10px] uppercase text-[color:var(--p1)]">Delete</button>
           </div>
@@ -90,19 +104,19 @@ export function TaskRow({
             Priority: {task.priority} (tap to cycle)
           </button>
 
-          {(userTags.length > 0 || plainTags.length > 0) && (
+          {(task.assigned_to.length > 0 || task.tags.length > 0) && (
             <div className="mb-2 flex flex-wrap gap-1">
-              {userTags.map((u) => (
+              {task.assigned_to.map((u) => (
                 <span key={u} className="mono rounded-[3px] border border-accent-lime px-1.5 py-0.5 text-[10px] text-accent-lime">@{u}</span>
               ))}
-              {plainTags.map((t) => (
-                <span key={t} className="mono rounded-[3px] border border-border px-1.5 py-0.5 text-[10px] text-dim">{t}</span>
+              {task.tags.map((t) => (
+                <span key={t} className="mono rounded-[3px] border border-border px-1.5 py-0.5 text-[10px] text-dim">#{t}</span>
               ))}
             </div>
           )}
 
           <div className="mono text-[10px] text-dim">
-            created {formatDistanceToNow(new Date(task.created_at), { addSuffix: true })} by @{task.created_by}
+            assigned by @{task.created_by} · {formatDistanceToNow(new Date(task.created_at), { addSuffix: true })}
           </div>
 
           {taskAlerts.length > 0 && (
@@ -130,7 +144,7 @@ export function TaskRow({
       {showAssign && (
         <UserPicker
           title="ASSIGN USERS"
-          selected={userTags}
+          selected={task.assigned_to}
           onToggle={toggleUser}
           onClose={() => setShowAssign(false)}
         />
@@ -138,7 +152,7 @@ export function TaskRow({
       {showTags && (
         <TagPicker
           title="TAGS"
-          selected={plainTags}
+          selected={task.tags}
           onToggle={togglePlain}
           onClose={() => setShowTags(false)}
         />
