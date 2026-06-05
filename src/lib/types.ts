@@ -2,7 +2,6 @@ export type Priority = "P1" | "P2" | "P3" | "Daily" | "None";
 export type AlertType = "normal" | "urgent";
 export type AlertTrigger = "now" | "scheduled";
 export type AlertStatus = "pending" | "acknowledged" | "scheduled";
-export type UserRole = "regular" | "manager" | "admin";
 
 export interface Profile {
   id: string;
@@ -10,20 +9,23 @@ export interface Profile {
   name: string;
   username: string;
   phone: string;
-  role: UserRole;
+  is_admin: boolean;
+  can_edit_tags: boolean;
   is_active: boolean;
   failed_attempts: number;
   locked_until: string | null;
 }
 
-export const canManageTags = (r?: UserRole | null) => r === "manager" || r === "admin";
-export const canManageUsers = (r?: UserRole | null) => r === "admin";
+export const canManageTags = (p?: Pick<Profile, "is_admin" | "can_edit_tags"> | null) =>
+  !!p && (p.is_admin || p.can_edit_tags);
+export const canManageUsers = (p?: Pick<Profile, "is_admin"> | null) => !!p && p.is_admin;
 
 export interface Task {
   id: string;
   text: string;
   priority: Priority;
   tags: string[];
+  assigned_to: string[];
   created_by: string;
   completed: boolean;
   completed_at: string | null;
@@ -36,7 +38,6 @@ export interface Tag {
   id: string;
   name: string;
   is_default: boolean;
-  is_user_tag: boolean;
 }
 
 export interface Alert {
