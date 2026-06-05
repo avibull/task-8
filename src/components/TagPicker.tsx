@@ -10,14 +10,14 @@ interface Props {
   title?: string;
 }
 
-/** Reusable tag picker (non-@ tags). Inline add/delete for managers/admins. */
+/** Reusable tag picker. Inline add/delete for admins / tag editors. */
 export function TagPicker({ selected, onToggle, onClose, title = "TAGS" }: Props) {
   const { tags, addCustom, remove } = useTags();
   const { profile } = useAuth();
-  const canManage = canManageTags(profile?.role);
+  const canManage = canManageTags(profile);
 
   const items = tags
-    .filter((t) => !t.is_user_tag)
+    .slice()
     .sort((a, b) => a.name.localeCompare(b.name))
     .map((t) => ({ key: t.name, label: t.name }));
 

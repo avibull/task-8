@@ -59,7 +59,7 @@ export function TagsProvider({ children }: { children: ReactNode }) {
         },
         remove: async (id) => {
           const t = tags.find((x) => x.id === id);
-          if (!t || t.is_user_tag) return;
+          if (!t) return;
           await supabase.from("tags").delete().eq("id", id);
           const { data: hits } = await supabase
             .from("tasks")

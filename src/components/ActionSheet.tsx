@@ -40,7 +40,7 @@ export function ActionSheet({ task, onClose, onSend }: Props) {
   const [whenKey, setWhenKey] = useState<string>("now");
   const [customTime, setCustomTime] = useState("");
   const [recipients, setRecipients] = useState<string[]>(
-    task.tags.filter((t) => t.startsWith("@")).map((t) => t.slice(1)).filter((u) => u !== profile?.username)
+    task.assigned_to.filter((u) => u !== profile?.username)
   );
   const [showPicker, setShowPicker] = useState(false);
 
@@ -88,7 +88,6 @@ export function ActionSheet({ task, onClose, onSend }: Props) {
         className="slide-up max-h-[92vh] overflow-y-auto rounded-t-[4px] border-t border-border bg-panel"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* header */}
         <div className="flex flex-col items-center px-4 pb-2 pt-2">
           <div className="mb-2 h-1 w-10 rounded-full bg-border" />
         </div>
@@ -100,7 +99,6 @@ export function ActionSheet({ task, onClose, onSend }: Props) {
           <button onClick={onClose} className="text-dim"><X size={18} /></button>
         </div>
 
-        {/* Section 1: Type */}
         <div className="px-4 pt-4">
           <div className="mono mb-2 text-[10px] uppercase tracking-wider text-dim">TYPE</div>
           <div className="grid grid-cols-2 gap-2">
@@ -127,7 +125,6 @@ export function ActionSheet({ task, onClose, onSend }: Props) {
           </div>
         </div>
 
-        {/* Section 2: When (NORMAL only) */}
         {type === "normal" && (
           <div className="px-4 pt-4">
             <div className="mono mb-2 text-[10px] uppercase tracking-wider text-dim">WHEN</div>
@@ -168,7 +165,6 @@ export function ActionSheet({ task, onClose, onSend }: Props) {
           </div>
         )}
 
-        {/* Section 3: To */}
         <div className="px-4 pt-4">
           <div className="mono mb-2 text-[10px] uppercase tracking-wider text-dim">TO</div>
           <div className="flex flex-wrap gap-1.5">
@@ -190,7 +186,6 @@ export function ActionSheet({ task, onClose, onSend }: Props) {
           </div>
         </div>
 
-        {/* Confirm */}
         <div className="p-4 pt-5">
           <button
             onClick={confirm}

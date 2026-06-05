@@ -66,41 +66,44 @@ export type Database = {
       }
       profiles: {
         Row: {
+          can_edit_tags: boolean
           created_at: string
           employee_id: string
           failed_attempts: number
           id: string
           is_active: boolean
+          is_admin: boolean
           locked_until: string | null
           name: string
           phone: string
-          role: Database["public"]["Enums"]["user_role"]
           updated_at: string
           username: string
         }
         Insert: {
+          can_edit_tags?: boolean
           created_at?: string
           employee_id: string
           failed_attempts?: number
           id: string
           is_active?: boolean
+          is_admin?: boolean
           locked_until?: string | null
           name: string
           phone: string
-          role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
           username: string
         }
         Update: {
+          can_edit_tags?: boolean
           created_at?: string
           employee_id?: string
           failed_attempts?: number
           id?: string
           is_active?: boolean
+          is_admin?: boolean
           locked_until?: string | null
           name?: string
           phone?: string
-          role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
           username?: string
         }
@@ -111,27 +114,25 @@ export type Database = {
           created_at: string
           id: string
           is_default: boolean
-          is_user_tag: boolean
           name: string
         }
         Insert: {
           created_at?: string
           id?: string
           is_default?: boolean
-          is_user_tag?: boolean
           name: string
         }
         Update: {
           created_at?: string
           id?: string
           is_default?: boolean
-          is_user_tag?: boolean
           name?: string
         }
         Relationships: []
       }
       tasks: {
         Row: {
+          assigned_to: string[]
           completed: boolean
           completed_at: string | null
           created_at: string
@@ -144,6 +145,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          assigned_to?: string[]
           completed?: boolean
           completed_at?: string | null
           created_at?: string
@@ -156,6 +158,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          assigned_to?: string[]
           completed?: boolean
           completed_at?: string | null
           created_at?: string
@@ -174,24 +177,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      current_role_value: {
-        Args: never
-        Returns: Database["public"]["Enums"]["user_role"]
-      }
+      can_edit_tags: { Args: never; Returns: boolean }
       current_username: { Args: never; Returns: string }
-      has_role: {
-        Args: { _role: Database["public"]["Enums"]["user_role"] }
-        Returns: boolean
-      }
       is_admin: { Args: never; Returns: boolean }
-      is_manager_or_admin: { Args: never; Returns: boolean }
     }
     Enums: {
       alert_status: "pending" | "acknowledged" | "scheduled"
       alert_trigger: "now" | "scheduled"
       alert_type: "normal" | "urgent"
       task_priority: "P1" | "P2" | "P3" | "Daily" | "None"
-      user_role: "regular" | "manager" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -323,7 +317,6 @@ export const Constants = {
       alert_trigger: ["now", "scheduled"],
       alert_type: ["normal", "urgent"],
       task_priority: ["P1", "P2", "P3", "Daily", "None"],
-      user_role: ["regular", "manager", "admin"],
     },
   },
 } as const

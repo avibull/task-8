@@ -46,9 +46,8 @@ function SettingsPage() {
 
   if (!profile) return null;
 
-  const showTags = canManageTags(profile.role);
-  const showAdmin = canManageUsers(profile.role);
-  const manageableTags = tags.filter((t) => !t.is_user_tag);
+  const showTags = canManageTags(profile);
+  const showAdmin = canManageUsers(profile);
 
   return (
     <div className="min-h-screen bg-background">
@@ -64,7 +63,10 @@ function SettingsPage() {
             <div><span className="text-dim">id · </span>{profile.employee_id}</div>
             <div><span className="text-dim">user · </span>@{profile.username}</div>
             <div><span className="text-dim">phone · </span>{profile.phone}</div>
-            <div><span className="text-dim">role · </span>{profile.role}</div>
+            <div className="flex gap-1 pt-0.5">
+              {profile.is_admin && <span className="rounded-[3px] border border-accent-lime bg-accent-lime/15 px-1.5 py-0.5 text-[9px] uppercase text-accent-lime">admin</span>}
+              {profile.can_edit_tags && <span className="rounded-[3px] border border-[#3b82f6] bg-[#3b82f6]/15 px-1.5 py-0.5 text-[9px] uppercase text-[#3b82f6]">tags</span>}
+            </div>
           </div>
           <div className="mt-3 space-y-2">
             <PinInput value={oldPin} onChange={setOldPin} placeholder="Old PIN" />
@@ -106,9 +108,9 @@ function SettingsPage() {
                 className="mono rounded-[3px] bg-accent-lime px-3 py-2 text-xs font-bold uppercase text-background"
               >Add</button>
             </div>
-            {manageableTags.length === 0 && <div className="mono text-[11px] text-dim">none yet</div>}
+            {tags.length === 0 && <div className="mono text-[11px] text-dim">none yet</div>}
             <div className="space-y-1">
-              {manageableTags.map((t) => (
+              {tags.map((t) => (
                 <div key={t.id} className="mono flex items-center justify-between rounded-[3px] border border-border bg-panel px-3 py-2 text-xs">
                   <span>{t.name}</span>
                   <button onClick={() => remove(t.id)} className="text-[color:var(--p1)]"><Trash2 size={14} /></button>

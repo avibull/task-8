@@ -5,44 +5,50 @@ import { TagPicker } from "./TagPicker";
 import { cn } from "@/lib/utils";
 
 interface Props {
-  onAdd: (text: string, tags: string[]) => void;
+  onAdd: (text: string, tags: string[], assigned_to: string[]) => void;
 }
 
 export function AddBar({ onAdd }: Props) {
   const [val, setVal] = useState("");
-  const [users, setUsers] = useState<string[]>([]);     // @-less usernames
-  const [tags, setTags] = useState<string[]>([]);       // non-@ tag names
+  const [assignees, setAssignees] = useState<string[]>([]); // @-less usernames
+  const [tags, setTags] = useState<string[]>([]);
   const [showUsers, setShowUsers] = useState(false);
   const [showTags, setShowTags] = useState(false);
 
   const submit = () => {
     if (!val.trim()) return;
-    const final = [...users.map((u) => `@${u}`), ...tags];
-    onAdd(val, final);
+    onAdd(val, tags, assignees);
     setVal("");
-    setUsers([]);
+    setAssignees([]);
     setTags([]);
   };
 
-  const chips = [
-    ...users.map((u) => ({ key: `u:${u}`, label: `@${u}`, accent: true, remove: () => setUsers((s) => s.filter((x) => x !== u)) })),
-    ...tags.map((t) => ({ key: `t:${t}`, label: t, accent: false, remove: () => setTags((s) => s.filter((x) => x !== t)) })),
-  ];
-
   return (
     <div className="border-b border-border bg-panel">
-      {chips.length > 0 && (
+      {(assignees.length > 0 || tags.length > 0) && (
         <div className="flex flex-wrap gap-1 border-b border-border px-3 py-2">
-          {chips.map((c) => (
+          {assignees.map((u) => (
             <span
-              key={c.key}
-              className={cn(
-                "mono inline-flex items-center gap-1 rounded-[3px] border px-1.5 py-0.5 text-[10px]",
-                c.accent ? "border-accent-lime text-accent-lime" : "border-border text-foreground"
-              )}
+              key={`u:${u}`}
+              className="mono inline-flex items-center gap-1 rounded-[3px] border border-accent-lime/60 bg-panel-2 px-1.5 py-0.5 text-[10px] text-accent-lime"
             >
-              {c.label}
-              <button onClick={c.remove} className="text-dim hover:text-foreground"><X size={10} /></button>
+              @{u}
+              <button
+                onClick={() => setAssignees((s) => s.filter((x) => x !== u))}
+                className="text-dim hover:text-foreground"
+              ><X size={10} /></button>
+            </span>
+          ))}
+          {tags.map((t) => (
+            <span
+              key={`t:${t}`}
+              className="mono inline-flex items-center gap-1 rounded-[3px] border border-border px-1.5 py-0.5 text-[10px] text-foreground"
+            >
+              #{t}
+              <button
+                onClick={() => setTags((s) => s.filter((x) => x !== t))}
+                className="text-dim hover:text-foreground"
+              ><X size={10} /></button>
             </span>
           ))}
         </div>
@@ -62,7 +68,10 @@ export function AddBar({ onAdd }: Props) {
           type="button"
           onClick={() => setShowUsers(true)}
           title="Assign users"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[3px] border border-border bg-panel-2 text-foreground hover:border-accent-lime"
+          className={cn(
+            "flex h-9 w-9 shrink-0 items-center justify-center rounded-[3px] border bg-panel-2 hover:border-accent-lime",
+            assignees.length > 0 ? "border-accent-lime text-accent-lime" : "border-border text-foreground"
+          )}
         >
           <UserPlus size={15} />
         </button>
@@ -70,7 +79,10 @@ export function AddBar({ onAdd }: Props) {
           type="button"
           onClick={() => setShowTags(true)}
           title="Add tags"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[3px] border border-border bg-panel-2 text-foreground hover:border-accent-lime"
+          className={cn(
+            "flex h-9 w-9 shrink-0 items-center justify-center rounded-[3px] border bg-panel-2 hover:border-accent-lime",
+            tags.length > 0 ? "border-accent-lime text-accent-lime" : "border-border text-foreground"
+          )}
         >
           <TagIcon size={15} />
         </button>
@@ -97,8 +109,8 @@ export function AddBar({ onAdd }: Props) {
       {showUsers && (
         <UserPicker
           title="ASSIGN USERS"
-          selected={users}
-          onToggle={(u) => setUsers((s) => (s.includes(u) ? s.filter((x) => x !== u) : [...s, u]))}
+          selected={assignees}
+          onToggle={(u) => setAssignees((s) => (s.includes(u) ? s.filter((x) => x !== u) : [...s, u]))}
           onClose={() => setShowUsers(false)}
         />
       )}

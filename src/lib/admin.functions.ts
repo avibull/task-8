@@ -1,11 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { empEmail, pinToPassword, type UserRole } from "./types";
+import { empEmail, pinToPassword } from "./types";
 
 async function ensureAdmin(userId: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data } = await supabaseAdmin.from("profiles").select("role").eq("id", userId).maybeSingle();
-  if (!data || data.role !== "admin") throw new Error("Forbidden");
+  const { data } = await supabaseAdmin.from("profiles").select("is_admin").eq("id", userId).maybeSingle();
+  if (!data || !data.is_admin) throw new Error("Forbidden");
   return supabaseAdmin;
 }
 
@@ -22,7 +22,7 @@ export const createUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: {
     employee_id: string; name: string; username: string; phone: string;
-    pin: string; role: UserRole;
+    pin: string; is_admin: boolean; can_edit_tags: boolean;
   }) => d)
   .handler(async ({ data, context }) => {
     const admin = await ensureAdmin(context.userId);
@@ -43,7 +43,8 @@ export const createUser = createServerFn({ method: "POST" })
       name: data.name.trim(),
       username,
       phone: data.phone.trim(),
-      role: data.role,
+      is_admin: data.is_admin,
+      can_edit_tags: data.is_admin || data.can_edit_tags,
       is_active: true,
     });
     if (pErr) {
@@ -57,16 +58,23 @@ export const updateUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: {
     id: string;
-    name?: string; phone?: string; role?: UserRole; is_active?: boolean; new_pin?: string;
+    name?: string; phone?: string;
+    is_admin?: boolean; can_edit_tags?: boolean;
+    is_active?: boolean; new_pin?: string;
   }) => d)
   .handler(async ({ data, context }) => {
     const admin = await ensureAdmin(context.userId);
     const patch: {
-      name?: string; phone?: string; role?: UserRole; is_active?: boolean;
+      name?: string; phone?: string;
+      is_admin?: boolean; can_edit_tags?: boolean;
+      is_active?: boolean;
     } = {};
     if (data.name !== undefined) patch.name = data.name.trim();
     if (data.phone !== undefined) patch.phone = data.phone.trim();
-    if (data.role !== undefined) patch.role = data.role;
+    if (data.is_admin !== undefined) patch.is_admin = data.is_admin;
+    if (data.can_edit_tags !== undefined || data.is_admin) {
+      patch.can_edit_tags = data.is_admin ? true : !!data.can_edit_tags;
+    }
     if (data.is_active !== undefined) patch.is_active = data.is_active;
     if (Object.keys(patch).length > 0) {
       const { error } = await admin.from("profiles").update(patch).eq("id", data.id);
