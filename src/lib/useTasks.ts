@@ -36,15 +36,9 @@ export function useTasks() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.username]);
 
-  const create = async (text: string, explicitTags?: string[], assignedTo?: string[]) => {
-    if (!profile || !text.trim()) return;
-    let base: string[] = [];
-    if (explicitTags && explicitTags.length > 0) {
-      base = explicitTags;
-    } else {
-      const { data: today } = await supabase.from("tags").select("name").eq("name", "today").maybeSingle();
-      if (today) base = ["today"];
-    }
+  const create = async (text: string, explicitTags?: string[], assignedTo?: string[]): Promise<string | null> => {
+    if (!profile || !text.trim()) return null;
+    const base: string[] = explicitTags && explicitTags.length > 0 ? explicitTags : [];
     // Validate non-@ tags exist
     const nonAt = Array.from(new Set(base)).filter((t) => !t.startsWith("@"));
     let validTags: string[] = nonAt;
@@ -54,13 +48,14 @@ export function useTasks() {
       validTags = nonAt.filter((t) => ok.has(t));
     }
     const assigned_to = Array.from(new Set((assignedTo ?? []).map((u) => u.replace(/^@/, ""))));
-    await supabase.from("tasks").insert({
+    const { data } = await supabase.from("tasks").insert({
       text: text.trim(),
-      priority: "None",
+      priority: "P1",
       tags: validTags,
       assigned_to,
       created_by: profile.username,
-    });
+    }).select("id").single();
+    return (data?.id as string) ?? null;
   };
 
   const toggle = async (t: Task) => {
