@@ -55,11 +55,26 @@ function TasksPage() {
     return <div className="mono flex min-h-screen items-center justify-center bg-background text-xs text-dim">loading…</div>;
   }
 
+  const [pulseId, setPulseId] = useState<string | null>(null);
+
+  const handleAdd = async (text: string, tags: string[], assigned: string[]) => {
+    const id = await create(text, tags, assigned);
+    if (!id) return;
+    setExpandedId(id);
+    setPulseId(id);
+    setTimeout(() => setPulseId((p) => (p === id ? null : p)), 600);
+    requestAnimationFrame(() => {
+      const el = document.getElementById(`task-${id}`);
+      if (el) el.scrollIntoView({ block: "center", behavior: "smooth" });
+    });
+  };
+
   const rowProps = (t: Task) => ({
     key: t.id,
     task: t,
     alerts,
     expanded: expandedId === t.id,
+    pulse: pulseId === t.id,
     onToggleComplete: () => toggle(t),
     onExpand: () => setExpandedId(expandedId === t.id ? null : t.id),
     onSendAlert: () => setSheetTask(t),
@@ -95,7 +110,7 @@ function TasksPage() {
       </header>
 
       <FilterBar scope={scope} onScope={setScope} tag={tagFilter} onTag={setTagFilter} />
-      <AddBar onAdd={(text, tags, assigned) => create(text, tags, assigned)} />
+      <AddBar onAdd={handleAdd} />
 
       <main className="flex-1 overflow-y-auto">
         <SectionHeader label="Active" count={active.length} />

@@ -12,6 +12,7 @@ interface Props {
   task: Task;
   alerts: Alert[];
   expanded: boolean;
+  pulse?: boolean;
   onToggleComplete: () => void;
   onExpand: () => void;
   onSendAlert: () => void;
@@ -24,7 +25,7 @@ interface Props {
 const PRIO_CYCLE: Priority[] = ["None", "P1", "P2", "P3", "Daily"];
 
 export function TaskRow({
-  task, alerts, expanded, onToggleComplete, onExpand,
+  task, alerts, expanded, pulse, onToggleComplete, onExpand,
   onSendAlert, onChangePriority, onUpdateTags, onUpdateAssignees, onDelete,
 }: Props) {
   const { profile } = useAuth();
@@ -46,7 +47,8 @@ export function TaskRow({
   };
 
   return (
-    <div className="border-b border-border">
+    <div id={`task-${task.id}`} className={cn("border-b border-border", pulse && "ring-2 ring-accent-lime ring-inset")}>
+
       <div
         onClick={onExpand}
         className={cn(
