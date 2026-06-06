@@ -89,8 +89,8 @@ export function AddBar({ onAdd }: Props) {
         {val.trim() ? (
           <button
             type="submit"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-lime text-background"
-            title="Add"
+            title="Add task"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-lime text-background shadow-md transition-transform active:scale-95"
           >
             <Send size={15} />
           </button>
@@ -99,7 +99,7 @@ export function AddBar({ onAdd }: Props) {
             type="button"
             disabled
             title="Voice — coming soon"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-lime text-background opacity-60"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-panel-2 text-dim"
           >
             <Mic size={15} />
           </button>
