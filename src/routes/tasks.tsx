@@ -21,6 +21,7 @@ function TasksPage() {
   const [scope, setScope] = useState<Scope>("mine");
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [pulseId, setPulseId] = useState<string | null>(null);
   const [sheetTask, setSheetTask] = useState<Task | null>(null);
   const [alertsOpen, setAlertsOpen] = useState(false);
 
