@@ -4,9 +4,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import type { Task } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { UserPicker } from "./UserPicker";
+import { UserMention } from "./UserMention";
 
 interface Props {
   task: Task;
+  initialRecipients?: string[];
   onClose: () => void;
   onSend: (params: {
     type: "normal" | "urgent";
@@ -34,13 +36,13 @@ const PRESETS: WhenPreset[] = [
   },
 ];
 
-export function ActionSheet({ task, onClose, onSend }: Props) {
+export function ActionSheet({ task, initialRecipients, onClose, onSend }: Props) {
   const { profile } = useAuth();
   const [type, setType] = useState<"normal" | "urgent">("normal");
   const [whenKey, setWhenKey] = useState<string>("now");
   const [customTime, setCustomTime] = useState("");
   const [recipients, setRecipients] = useState<string[]>(
-    task.assigned_to.filter((u) => u !== profile?.username)
+    initialRecipients ?? task.assigned_to.filter((u) => u !== profile?.username)
   );
   const [showPicker, setShowPicker] = useState(false);
 
@@ -169,13 +171,19 @@ export function ActionSheet({ task, onClose, onSend }: Props) {
           <div className="mono mb-2 text-[10px] uppercase tracking-wider text-dim">TO</div>
           <div className="flex flex-wrap gap-1.5">
             {recipients.map((u) => (
-              <button
+              <span
                 key={u}
-                onClick={() => toggleRecipient(u)}
-                className="mono rounded-[3px] border border-accent-lime bg-accent-lime px-2 py-1 text-[11px] text-background"
+                className="mono inline-flex items-center gap-1 rounded-[3px] border border-accent-lime bg-accent-lime/10 px-1.5 py-1 text-[11px] text-background"
               >
-                @{u} ×
-              </button>
+                <UserMention username={u} task={task} className="text-background hover:text-background/80" />
+                <button
+                  onClick={() => toggleRecipient(u)}
+                  className="text-background/70 hover:text-background"
+                  aria-label={`Remove ${u}`}
+                >
+                  <X size={10} />
+                </button>
+              </span>
             ))}
             <button
               onClick={() => setShowPicker(true)}
