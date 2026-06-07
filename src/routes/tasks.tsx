@@ -87,65 +87,74 @@ function TasksPage() {
   });
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <header className="flex items-center justify-between border-b border-border bg-panel px-4 py-3">
-        <h1 className="mono text-base font-bold">
-          turbo<span className="text-accent-lime">·</span>task
-        </h1>
-        <div className="flex items-center gap-3">
-          <Link to="/settings" className="text-dim hover:text-foreground">
-            <SettingsIcon size={18} />
-          </Link>
-          <button
-            onClick={() => setAlertsOpen(true)}
-            className="relative text-foreground"
-            aria-label="Alerts"
-          >
-            <Bell size={20} />
-            {unread > 0 && (
-              <span className="mono absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[color:var(--p1)] px-1 text-[9px] font-bold text-background">
-                {unread}
-              </span>
-            )}
-          </button>
-        </div>
-      </header>
+    <MentionProvider
+      onPingTask={(t, username) => {
+        setAlertsOpen(false);
+        setSheetOverride([username]);
+        setSheetTask(t);
+      }}
+    >
+      <div className="flex min-h-screen flex-col bg-background">
+        <header className="flex items-center justify-between border-b border-border bg-panel px-4 py-3">
+          <h1 className="mono text-base font-bold">
+            turbo<span className="text-accent-lime">·</span>task
+          </h1>
+          <div className="flex items-center gap-3">
+            <Link to="/settings" className="text-dim hover:text-foreground">
+              <SettingsIcon size={18} />
+            </Link>
+            <button
+              onClick={() => setAlertsOpen(true)}
+              className="relative text-foreground"
+              aria-label="Alerts"
+            >
+              <Bell size={20} />
+              {unread > 0 && (
+                <span className="mono absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[color:var(--p1)] px-1 text-[9px] font-bold text-background">
+                  {unread}
+                </span>
+              )}
+            </button>
+          </div>
+        </header>
 
-      <FilterBar scope={scope} onScope={setScope} tag={tagFilter} onTag={setTagFilter} />
-      <AddBar onAdd={handleAdd} />
+        <FilterBar scope={scope} onScope={setScope} tag={tagFilter} onTag={setTagFilter} />
+        <AddBar onAdd={handleAdd} />
 
-      <main className="flex-1 overflow-y-auto">
-        <SectionHeader label="Active" count={active.length} />
-        {active.map((t) => (<TaskRow {...rowProps(t)} />))}
+        <main className="flex-1 overflow-y-auto">
+          <SectionHeader label="Active" count={active.length} />
+          {active.map((t) => (<TaskRow {...rowProps(t)} />))}
 
-        <SectionHeader label="Done" count={done.length} />
-        {done.map((t) => (<TaskRow {...rowProps(t)} />))}
-        <div className="h-24" />
-      </main>
+          <SectionHeader label="Done" count={done.length} />
+          {done.map((t) => (<TaskRow {...rowProps(t)} />))}
+          <div className="h-24" />
+        </main>
 
-      {sheetTask && (
-        <ActionSheet
-          task={sheetTask}
-          onClose={() => setSheetTask(null)}
-          onSend={async (params) => {
-            await send({ task_id: sheetTask.id, ...params });
-          }}
-        />
-      )}
+        {sheetTask && (
+          <ActionSheet
+            task={sheetTask}
+            initialRecipients={sheetOverride}
+            onClose={() => { setSheetTask(null); setSheetOverride(undefined); }}
+            onSend={async (params) => {
+              await send({ task_id: sheetTask.id, ...params });
+            }}
+          />
+        )}
 
-      {alertsOpen && (
-        <AlertsPanel
-          alerts={alerts}
-          tasks={tasks}
-          onClose={() => setAlertsOpen(false)}
-          onAck={acknowledge}
-          onRepingAlert={(a: Alert) => {
-            const t = tasks.find((x) => x.id === a.task_id);
-            if (t) { setAlertsOpen(false); setSheetTask(t); }
-          }}
-        />
-      )}
-    </div>
+        {alertsOpen && (
+          <AlertsPanel
+            alerts={alerts}
+            tasks={tasks}
+            onClose={() => setAlertsOpen(false)}
+            onAck={acknowledge}
+            onRepingAlert={(a: Alert) => {
+              const t = tasks.find((x) => x.id === a.task_id);
+              if (t) { setAlertsOpen(false); setSheetOverride(undefined); setSheetTask(t); }
+            }}
+          />
+        )}
+      </div>
+    </MentionProvider>
   );
 }
 
