@@ -173,9 +173,13 @@ export function ActionSheet({ task, initialRecipients, onClose, onSend }: Props)
             {recipients.map((u) => (
               <span
                 key={u}
-                className="mono inline-flex items-center gap-1 rounded-[3px] border border-accent-lime bg-accent-lime/10 px-1.5 py-1 text-[11px] text-background"
+                className="mono inline-flex items-center gap-1 rounded-[3px] border border-accent-lime bg-accent-lime px-1.5 py-1 text-[11px] text-background"
               >
-                <UserMention username={u} task={task} className="text-background hover:text-background/80" />
+                <UserMention
+                  username={u}
+                  task={task}
+                  className="text-background underline decoration-dotted underline-offset-2 hover:text-background/80"
+                />
                 <button
                   onClick={() => toggleRecipient(u)}
                   className="text-background/70 hover:text-background"
