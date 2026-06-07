@@ -4,6 +4,7 @@ import type { Alert, Task } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatDistanceToNow } from "date-fns";
+import { UserMention } from "./UserMention";
 
 interface Props {
   alerts: Alert[];
@@ -71,8 +72,9 @@ export function AlertsPanel({ alerts, tasks, onClose, onAck, onRepingAlert }: Pr
             >
               <div className="mb-1 flex items-center gap-2">
                 <span className="mono text-[10px] uppercase text-dim">
-                  {tab === "received" ? "from" : "to"} @{other}
+                  {tab === "received" ? "from" : "to"}
                 </span>
+                <UserMention username={other} task={task ?? null} className="mono text-[10px] text-accent-lime underline decoration-dotted underline-offset-2" />
                 <span className={cn(
                   "mono rounded-[3px] px-1.5 py-0.5 text-[9px] font-bold uppercase",
                   a.type === "urgent" ? "bg-[color:var(--p1)] text-background" : "bg-panel-2 text-dim"
