@@ -9,6 +9,7 @@ import { AddBar } from "@/components/AddBar";
 import { TaskRow } from "@/components/TaskRow";
 import { ActionSheet } from "@/components/ActionSheet";
 import { AlertsPanel } from "@/components/AlertsPanel";
+import { MentionProvider } from "@/contexts/MentionContext";
 import type { Alert, Task } from "@/lib/types";
 
 export const Route = createFileRoute("/tasks")({ component: TasksPage });
