@@ -6,19 +6,19 @@ let cache: Profile[] | null = null;
 let inflight: Promise<Profile[]> | null = null;
 const subs = new Set<(p: Profile[]) => void>();
 
-function load(): Promise<Profile[]> {
-  if (cache) return Promise.resolve(cache);
+async function load(): Promise<Profile[]> {
+  if (cache) return cache;
   if (!inflight) {
-    inflight = supabase
-      .from("profiles")
-      .select("*")
-      .eq("is_active", true)
-      .then(({ data }) => {
-        cache = (data as Profile[]) ?? [];
-        subs.forEach((s) => s(cache!));
-        inflight = null;
-        return cache;
-      });
+    inflight = (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("is_active", true);
+      cache = (data as Profile[]) ?? [];
+      subs.forEach((s) => s(cache!));
+      inflight = null;
+      return cache;
+    })();
   }
   return inflight;
 }
