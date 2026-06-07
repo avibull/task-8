@@ -56,7 +56,6 @@ function TasksPage() {
     return <div className="mono flex min-h-screen items-center justify-center bg-background text-xs text-dim">loading…</div>;
   }
 
-  const [pulseId, setPulseId] = useState<string | null>(null);
 
   const handleAdd = async (text: string, tags: string[], assigned: string[]) => {
     const id = await create(text, tags, assigned);
