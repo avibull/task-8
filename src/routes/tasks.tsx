@@ -24,6 +24,7 @@ function TasksPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [pulseId, setPulseId] = useState<string | null>(null);
   const [sheetTask, setSheetTask] = useState<Task | null>(null);
+  const [sheetOverride, setSheetOverride] = useState<string[] | undefined>(undefined);
   const [alertsOpen, setAlertsOpen] = useState(false);
 
   useEffect(() => {
