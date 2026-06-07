@@ -6,6 +6,7 @@ import { PriorityBadge } from "./PriorityBadge";
 import { formatDistanceToNow } from "date-fns";
 import { UserPicker } from "./UserPicker";
 import { TagPicker } from "./TagPicker";
+import { UserMention } from "./UserMention";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface Props {
@@ -71,7 +72,7 @@ export function TaskRow({
         </div>
         <div className="mono flex shrink-0 flex-wrap items-center justify-end gap-x-1.5 gap-y-0.5 text-[10px]">
           {task.assigned_to.slice(0, 3).map((u) => (
-            <span key={`a:${u}`} className="text-accent-lime underline decoration-dotted underline-offset-2">@{u}</span>
+            <UserMention key={`a:${u}`} username={u} task={task} className="text-[10px] text-accent-lime underline decoration-dotted underline-offset-2" />
           ))}
           {task.tags.slice(0, 3).map((t) => (
             <span key={`t:${t}`} className="text-dim">#{t}</span>
@@ -109,7 +110,9 @@ export function TaskRow({
           {(task.assigned_to.length > 0 || task.tags.length > 0) && (
             <div className="mb-2 flex flex-wrap gap-1">
               {task.assigned_to.map((u) => (
-                <span key={u} className="mono rounded-[3px] border border-accent-lime px-1.5 py-0.5 text-[10px] text-accent-lime">@{u}</span>
+                <span key={u} className="mono inline-block rounded-[3px] border border-accent-lime px-1.5 py-0.5 text-[10px]">
+                  <UserMention username={u} task={task} />
+                </span>
               ))}
               {task.tags.map((t) => (
                 <span key={t} className="mono rounded-[3px] border border-border px-1.5 py-0.5 text-[10px] text-dim">#{t}</span>
