@@ -21,6 +21,7 @@ function TasksPage() {
   const [scope, setScope] = useState<Scope>("mine");
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [pulseId, setPulseId] = useState<string | null>(null);
   const [sheetTask, setSheetTask] = useState<Task | null>(null);
   const [alertsOpen, setAlertsOpen] = useState(false);
 
@@ -55,7 +56,6 @@ function TasksPage() {
     return <div className="mono flex min-h-screen items-center justify-center bg-background text-xs text-dim">loading…</div>;
   }
 
-  const [pulseId, setPulseId] = useState<string | null>(null);
 
   const handleAdd = async (text: string, tags: string[], assigned: string[]) => {
     const id = await create(text, tags, assigned);
