@@ -38,7 +38,9 @@ export function UserMention({ username, task, className }: Props) {
 
   const phone = profile?.phone ?? "";
   const digits = phone.replace(/\D/g, "");
-  const textParam = task?.text ? `?text=${encodeURIComponent(task.text)}` : "";
+  const textParam = task?.text
+    ? `?text=${encodeURIComponent("Turbo.Task.Reminder- " + task.text)}`
+    : "";
   const waHref = digits ? `https://wa.me/${digits}${textParam}` : null;
 
   const canPing = !!task && !!onPingTask;
