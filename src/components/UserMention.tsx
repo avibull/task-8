@@ -75,9 +75,16 @@ export function UserMention({ username, task, className }: Props) {
         {waHref ? (
           <a
             href={waHref}
-            target="_blank"
+            target="_top"
             rel="noopener noreferrer"
-            onClick={() => setOpen(false)}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (import.meta.env.DEV) console.debug("[wa]", waHref);
+              setOpen(false);
+              const w = window.open(waHref, "_blank", "noopener,noreferrer");
+              if (!w) window.location.assign(waHref);
+            }}
             className="flex items-center justify-between gap-2 px-3 py-2.5 hover:bg-panel-2"
           >
             <span className="flex items-center gap-2">
