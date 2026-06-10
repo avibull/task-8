@@ -11,6 +11,8 @@ import { Toaster } from "sonner";
 import appCss from "../styles.css?url";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { TagsProvider } from "@/contexts/TagsContext";
+import { registerServiceWorker } from "@/lib/registerServiceWorker";
+import { InstallPrompt } from "@/components/InstallPrompt";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
@@ -20,9 +22,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "theme-color", content: "#0d0e10" },
       { title: "turbo·task" },
       { name: "description", content: "Dense, ultra-fast multi-user task management." },
+      { name: "mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      { name: "apple-mobile-web-app-title", content: "TurboTask" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
+      { rel: "manifest", href: "/manifest.json" },
+      { rel: "apple-touch-icon", href: "/icon-192.svg" },
+      { rel: "icon", href: "/icon-192.svg", type: "image/svg+xml" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
@@ -68,11 +77,17 @@ function RootComponent() {
     else { root.classList.remove("light"); root.classList.add("dark"); }
   }, []);
 
+  // PWA service worker (guarded — skipped in Lovable preview / dev / iframe)
+  useEffect(() => {
+    registerServiceWorker();
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <TagsProvider>
           <Outlet />
+          <InstallPrompt />
           <Toaster theme="dark" position="top-center" richColors />
         </TagsProvider>
       </AuthProvider>
