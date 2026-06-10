@@ -20,7 +20,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { name: "theme-color", content: "#0d0e10" },
-      { title: "task8 — Ultra-fast Multi-user Task Management" },
+      { title: "task.8 - Minimalist To Do App" },
       {
         name: "description",
         content:
@@ -28,7 +28,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: "task8" },
-      { property: "og:title", content: "task8 — Ultra-fast Multi-user Task Management" },
+      { property: "og:title", content: "task.8 - Minimalist To Do App" },
       {
         property: "og:description",
         content:
@@ -36,7 +36,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:url", content: "https://turbo-task.lovable.app/" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:title", content: "task8 — Ultra-fast Multi-user Task Management" },
+      { name: "twitter:title", content: "task.8 - Minimalist To Do App" },
       {
         name: "twitter:description",
         content:
@@ -46,6 +46,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       { name: "apple-mobile-web-app-title", content: "task8" },
+      { name: "description", content: "Simple to use. Send reminders to others for tasks." },
+      { property: "og:description", content: "Simple to use. Send reminders to others for tasks." },
+      { name: "twitter:description", content: "Simple to use. Send reminders to others for tasks." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/6009fccc-d4c3-4342-95e0-88029fee8041/id-preview-926c0e23--5d750960-c414-40de-88db-d8fb81e2402c.lovable.app-1781109582575.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/6009fccc-d4c3-4342-95e0-88029fee8041/id-preview-926c0e23--5d750960-c414-40de-88db-d8fb81e2402c.lovable.app-1781109582575.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
