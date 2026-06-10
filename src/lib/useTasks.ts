@@ -47,17 +47,23 @@ export function useTasks() {
       assigned_to,
       created_by: profile.username,
     }).select("id").single();
-    return (data?.id as string) ?? null;
+    const id = (data?.id as string) ?? null;
+    if (id) logActivity({ event_type: "task_created", task_id: id, meta: { task_text: text.trim() } });
+    return id;
   };
 
   const toggle = async (t: Task) => {
+    const becomingComplete = !t.completed;
     await supabase
       .from("tasks")
       .update({
-        completed: !t.completed,
-        completed_at: !t.completed ? new Date().toISOString() : null,
+        completed: becomingComplete,
+        completed_at: becomingComplete ? new Date().toISOString() : null,
       })
       .eq("id", t.id);
+    if (becomingComplete) {
+      logActivity({ event_type: "task_completed", task_id: t.id, meta: { task_text: t.text } });
+    }
   };
 
   const update = async (id: string, patch: Partial<Task>) => {
@@ -65,7 +71,9 @@ export function useTasks() {
   };
 
   const remove = async (id: string) => {
+    const t = tasks.find((x) => x.id === id);
     await supabase.from("tasks").delete().eq("id", id);
+    if (t) logActivity({ event_type: "task_deleted", task_id: null, meta: { task_text: t.text } });
   };
 
   /** Persist a new ordering. Assigns sort_order to each id by its index (lowest = top). */
