@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { ensureAudioReady, playChime, playDing } from "@/lib/sound";
 import type { Alert } from "@/lib/types";
 import { toast } from "sonner";
+import { logActivity } from "@/lib/activity";
 
 /**
  * Listens to realtime alert inserts/updates for the current user.
