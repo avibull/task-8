@@ -131,9 +131,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signOut: async () => {
           await teardownStore();
           await supabase.auth.signOut();
+          writeCachedProfile(null);
           setProfile(null);
           setUserId(null);
         },
+
       }}
     >
       {children}
