@@ -212,9 +212,13 @@ function TasksPage() {
       <div className="flex min-h-screen flex-col bg-background">
         <header className="flex items-center justify-between border-b border-border bg-panel px-4 py-3">
           <h1 className="sr-only">Tasks — Collaborative management</h1>
-          <div className="mono text-base font-bold" aria-hidden="true">
-            task<span className="text-accent-lime">·</span>8
+          <div className="mono flex items-center gap-2 text-base font-bold">
+            <span aria-hidden="true">
+              task<span className="text-accent-lime">·</span>8
+            </span>
+            <SyncStatus />
           </div>
+
           <div className="flex items-center gap-3">
             <Link to="/settings" aria-label="Settings" className="text-dim hover:text-foreground">
               <SettingsIcon size={18} />
