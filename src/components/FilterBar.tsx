@@ -51,9 +51,9 @@ export function FilterBar({ scope, onScope, tags: activeTags, onToggleTag, onCle
             key={name}
             onClick={() => onToggleTag(name)}
             className={cn(
-              "mono shrink-0 rounded-[3px] border px-2.5 py-1 text-[11px] uppercase tracking-wide transition-colors",
+              "mono shrink-0 rounded-[3px] border px-2.5 py-1 text-[11px] uppercase tracking-wide transition-colors min-h-[36px]",
               active
-                ? "border-accent-lime bg-accent-lime text-background"
+                ? "chip-active border-accent-lime bg-accent-lime text-background"
                 : "border-border bg-panel text-foreground hover:border-dim"
             )}
           >
