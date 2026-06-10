@@ -9,8 +9,34 @@ import { AddBar } from "@/components/AddBar";
 import { TaskRow } from "@/components/TaskRow";
 import { ActionSheet } from "@/components/ActionSheet";
 import { AlertsPanel } from "@/components/AlertsPanel";
+import { SortControl, type SortKey } from "@/components/SortControl";
 import { MentionProvider } from "@/contexts/MentionContext";
-import type { Alert, Task } from "@/lib/types";
+import type { Alert, Priority, Task } from "@/lib/types";
+
+const PRIO_RANK: Record<Priority, number> = { P1: 0, P2: 1, P3: 2, Daily: 3, None: 4 };
+const SORT_STORAGE_KEY = "turbotask.sort";
+
+function applySort(list: Task[], sort: SortKey): Task[] {
+  const incomplete = list.filter((t) => !t.completed);
+  const done = list.filter((t) => t.completed);
+  const cmp = (a: Task, b: Task): number => {
+    switch (sort) {
+      case "priority_desc":
+        return PRIO_RANK[a.priority] - PRIO_RANK[b.priority] || b.created_at.localeCompare(a.created_at);
+      case "priority_asc":
+        return PRIO_RANK[b.priority] - PRIO_RANK[a.priority] || b.created_at.localeCompare(a.created_at);
+      case "date_desc":
+        return b.created_at.localeCompare(a.created_at);
+      case "date_asc":
+        return a.created_at.localeCompare(b.created_at);
+      case "az":
+        return a.text.localeCompare(b.text);
+      case "za":
+        return b.text.localeCompare(a.text);
+    }
+  };
+  return [...incomplete.sort(cmp), ...done.sort(cmp)];
+}
 
 export const Route = createFileRoute("/tasks")({ component: TasksPage });
 
