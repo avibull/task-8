@@ -100,6 +100,26 @@ function TasksPage() {
     if (!loading && !profile) nav({ to: "/login", replace: true });
   }, [loading, profile, nav]);
 
+  // Deep-link from Activity log: open and scroll to the requested task.
+  useEffect(() => {
+    if (typeof window === "undefined" || tasksLoading) return;
+    const id = window.sessionStorage.getItem("open_task_id");
+    if (!id) return;
+    const exists = tasks.some((t) => t.id === id);
+    if (!exists) {
+      window.sessionStorage.removeItem("open_task_id");
+      return;
+    }
+    setExpandedId(id);
+    setPulseId(id);
+    setTimeout(() => setPulseId((p) => (p === id ? null : p)), 600);
+    requestAnimationFrame(() => {
+      const el = document.getElementById(`task-${id}`);
+      if (el) el.scrollIntoView({ block: "center", behavior: "smooth" });
+    });
+    window.sessionStorage.removeItem("open_task_id");
+  }, [tasksLoading, tasks]);
+
   // Long-press (500ms) to activate drag; tap remains tap-to-expand.
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { delay: 500, tolerance: 6 } }),
