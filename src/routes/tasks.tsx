@@ -77,7 +77,7 @@ export const Route = createFileRoute("/tasks")({
 function TasksPage() {
   const nav = useNavigate();
   const { profile, loading } = useAuth();
-  const { tasks, create, toggle, update, remove, reorder } = useTasks();
+  const { tasks, loading: tasksLoading, create, toggle, update, remove, reorder } = useTasks();
   const { alerts, acknowledge, send } = useAlerts();
   const [scope, setScope] = useState<Scope>("mine");
   const [tagFilters, setTagFilters] = useState<string[]>([]);
