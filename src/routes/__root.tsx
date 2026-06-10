@@ -107,9 +107,11 @@ function RootComponent() {
   // theme bootstrap from localStorage
   useEffect(() => {
     const t = localStorage.getItem("tt_theme");
+    const theme = t === "light" ? "light" : "dark";
     const root = document.documentElement;
-    if (t === "light") { root.classList.remove("dark"); root.classList.add("light"); }
-    else { root.classList.remove("light"); root.classList.add("dark"); }
+    root.classList.remove("dark", "light");
+    root.classList.add(theme);
+    root.setAttribute("data-theme", theme);
   }, []);
 
   // PWA service worker (guarded — skipped in Lovable preview / dev / iframe)

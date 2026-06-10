@@ -21,6 +21,7 @@ import { ActionSheet } from "@/components/ActionSheet";
 import { AlertsPanel } from "@/components/AlertsPanel";
 import { SortControl, type SortKey } from "@/components/SortControl";
 import { MentionProvider } from "@/contexts/MentionContext";
+import { TaskListSkeleton } from "@/components/TaskListSkeleton";
 import type { Alert, Priority, Task } from "@/lib/types";
 
 const PRIO_RANK: Record<Priority, number> = { P1: 0, P2: 1, P3: 2, Daily: 3, None: 4 };
@@ -76,7 +77,7 @@ export const Route = createFileRoute("/tasks")({
 function TasksPage() {
   const nav = useNavigate();
   const { profile, loading } = useAuth();
-  const { tasks, create, toggle, update, remove, reorder } = useTasks();
+  const { tasks, loading: tasksLoading, create, toggle, update, remove, reorder } = useTasks();
   const { alerts, acknowledge, send } = useAlerts();
   const [scope, setScope] = useState<Scope>("mine");
   const [tagFilters, setTagFilters] = useState<string[]>([]);
@@ -98,6 +99,26 @@ function TasksPage() {
   useEffect(() => {
     if (!loading && !profile) nav({ to: "/login", replace: true });
   }, [loading, profile, nav]);
+
+  // Deep-link from Activity log: open and scroll to the requested task.
+  useEffect(() => {
+    if (typeof window === "undefined" || tasksLoading) return;
+    const id = window.sessionStorage.getItem("open_task_id");
+    if (!id) return;
+    const exists = tasks.some((t) => t.id === id);
+    if (!exists) {
+      window.sessionStorage.removeItem("open_task_id");
+      return;
+    }
+    setExpandedId(id);
+    setPulseId(id);
+    setTimeout(() => setPulseId((p) => (p === id ? null : p)), 600);
+    requestAnimationFrame(() => {
+      const el = document.getElementById(`task-${id}`);
+      if (el) el.scrollIntoView({ block: "center", behavior: "smooth" });
+    });
+    window.sessionStorage.removeItem("open_task_id");
+  }, [tasksLoading, tasks]);
 
   // Long-press (500ms) to activate drag; tap remains tap-to-expand.
   const sensors = useSensors(
@@ -223,15 +244,21 @@ function TasksPage() {
         <SortControl value={sort} onChange={setSort} />
 
         <main className="flex-1 overflow-y-auto">
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={allIds} strategy={verticalListSortingStrategy}>
-              <SectionHeader label="Active" count={active.length} />
-              {active.map((t) => (<SortableTaskRow {...rowProps(t)} />))}
+          {tasksLoading ? (
+            <TaskListSkeleton />
+          ) : filtered.length === 0 ? (
+            <EmptyTasks scope={scope} tagFilters={tagFilters} />
+          ) : (
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={allIds} strategy={verticalListSortingStrategy}>
+                <SectionHeader label="Active" count={active.length} />
+                {active.map((t) => (<SortableTaskRow {...rowProps(t)} />))}
 
-              <SectionHeader label="Done" count={done.length} />
-              {done.map((t) => (<SortableTaskRow {...rowProps(t)} />))}
-            </SortableContext>
-          </DndContext>
+                <SectionHeader label="Done" count={done.length} />
+                {done.map((t) => (<SortableTaskRow {...rowProps(t)} />))}
+              </SortableContext>
+            </DndContext>
+          )}
           <div className="h-24" />
         </main>
 
@@ -269,5 +296,21 @@ function SectionHeader({ label, count }: { label: string; count: number }) {
       <span>▸ {label}</span>
       <span>{count}</span>
     </h2>
+  );
+}
+
+function EmptyTasks({ scope, tagFilters }: { scope: Scope; tagFilters: string[] }) {
+  let msg = "No tasks yet. Add your first one above.";
+  if (tagFilters.length > 0) {
+    msg = `No tasks tagged #${tagFilters[0]}.`;
+  } else if (scope === "mine") {
+    msg = "Nothing assigned to you. Add a task above or check All.";
+  } else if (scope === "delegated") {
+    msg = "No tasks assigned to others yet.";
+  }
+  return (
+    <div className="mono px-8 py-16 text-center text-[11px] uppercase tracking-wider text-[color:var(--color-text-faint)]">
+      {msg}
+    </div>
   );
 }

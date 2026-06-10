@@ -7,6 +7,7 @@ import { useTags } from "@/contexts/TagsContext";
 import { changePin } from "@/lib/bootstrap.functions";
 import { canManageTags, canManageUsers } from "@/lib/types";
 import { AdminPanel } from "@/components/AdminPanel";
+import { ActivityLog } from "@/components/ActivityLog";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -38,6 +39,7 @@ function SettingsPage() {
   const { profile, loading, signOut } = useAuth();
   const [sheet, setSheet] = useState<Sheet>(null);
   const [adminOpen, setAdminOpen] = useState(false);
+  const [activityOpen, setActivityOpen] = useState(false);
 
   useEffect(() => {
     if (!loading && !profile) nav({ to: "/login", replace: true });
@@ -71,6 +73,7 @@ function SettingsPage() {
           <Row label="Display" onClick={() => setSheet("display")} />
           {showTags && <Row label="Tag management" onClick={() => setSheet("tags")} />}
           {showAdmin && <Row label="Manage users" onClick={() => setAdminOpen(true)} />}
+          <Row label="Activity" onClick={() => setActivityOpen(true)} />
         </div>
 
         <button
@@ -92,9 +95,20 @@ function SettingsPage() {
       </SheetWrap>
 
       {adminOpen && (
-        <div className="fixed inset-0 z-50 animate-in fade-in slide-in-from-right-4 bg-background">
+        <div className="fixed inset-0 z-50 slide-in-right bg-background">
           <AdminPanel onClose={() => setAdminOpen(false)} />
         </div>
+      )}
+
+      {activityOpen && (
+        <ActivityLog
+          onClose={() => setActivityOpen(false)}
+          onOpenTask={(id) => {
+            if (typeof window !== "undefined") window.sessionStorage.setItem("open_task_id", id);
+            setActivityOpen(false);
+            nav({ to: "/tasks" });
+          }}
+        />
       )}
     </div>
   );
@@ -174,6 +188,7 @@ function DisplayForm() {
     const root = document.documentElement;
     root.classList.remove("dark", "light");
     root.classList.add(t);
+    root.setAttribute("data-theme", t);
   };
   return (
     <div className="p-4">

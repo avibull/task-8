@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_log: {
+        Row: {
+          alert_id: string | null
+          created_at: string
+          event_type: string
+          id: string
+          meta: Json
+          task_id: string | null
+          user_id: string
+        }
+        Insert: {
+          alert_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          meta?: Json
+          task_id?: string | null
+          user_id: string
+        }
+        Update: {
+          alert_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          meta?: Json
+          task_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_log_alert_id_fkey"
+            columns: ["alert_id"]
+            isOneToOne: false
+            referencedRelation: "alerts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_log_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       alerts: {
         Row: {
           ack_at: string | null
