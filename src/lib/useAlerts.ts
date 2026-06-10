@@ -1,116 +1,87 @@
-import { useEffect, useRef, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
-import { ensureAudioReady, playChime, playDing } from "@/lib/sound";
-import type { Alert } from "@/lib/types";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+import { store, mutate, manualSync } from "@/lib/localdb";
+import { ensureAudioReady, playChime, playDing } from "@/lib/sound";
 import { logActivity } from "@/lib/activity";
+import type { Alert } from "@/lib/types";
 
 /**
- * Listens to realtime alert inserts/updates for the current user.
- * Prevents repeat-notify bug via in-memory Set of played alert IDs.
- * Repeats urgent chime every 10s up to 2min until ack'd.
+ * Alerts hook backed by the local store.
+ * Plays sound when a new pending alert addressed to me arrives,
+ * with the urgent repeat-chime logic preserved.
  */
 export function useAlerts() {
   const { profile } = useAuth();
-  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const snap = useSyncExternalStore(store.subscribe, store.get, store.get);
+  const alerts = snap.alerts;
+
   const playedRef = useRef<Set<string>>(new Set());
   const repeatTimers = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map());
   const stopTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const lastIdsRef = useRef<Set<string>>(new Set());
 
   const stopRepeat = (id: string) => {
     const t = repeatTimers.current.get(id);
-    if (t) { clearInterval(t); repeatTimers.current.delete(id); }
+    if (t) {
+      clearInterval(t);
+      repeatTimers.current.delete(id);
+    }
     const s = stopTimers.current.get(id);
-    if (s) { clearTimeout(s); stopTimers.current.delete(id); }
-  };
-
-  const handleIncoming = (a: Alert) => {
-    if (a.recipient !== profile?.username) return;
-    if (a.status !== "pending") return;
-    if (playedRef.current.has(a.id)) return;
-    playedRef.current.add(a.id);
-    ensureAudioReady();
-    if (a.type === "urgent") {
-      playChime();
-      toast.error(`URGENT ping from @${a.sender}`, { duration: 8000 });
-      const iv = setInterval(() => playChime(), 10_000);
-      repeatTimers.current.set(a.id, iv);
-      const stop = setTimeout(() => stopRepeat(a.id), 120_000);
-      stopTimers.current.set(a.id, stop);
-    } else {
-      playDing();
-      toast(`Ping from @${a.sender}`);
+    if (s) {
+      clearTimeout(s);
+      stopTimers.current.delete(id);
     }
   };
 
-  const refetch = async () => {
-    if (!profile) return;
-    const { data } = await supabase
-      .from("alerts")
-      .select("*")
-      .or(`sender.eq.${profile.username},recipient.eq.${profile.username}`)
-      .order("created_at", { ascending: false })
-      .limit(200);
-    setAlerts((data as Alert[]) ?? []);
-  };
-
+  // Detect newly arrived pending alerts addressed to me → play sound.
   useEffect(() => {
     if (!profile) return;
-    refetch();
-    // Poll: flip due 'scheduled' alerts I sent into 'pending' so realtime delivers them.
-    const tick = async () => {
-      const nowIso = new Date().toISOString();
-      await supabase
-        .from("alerts")
-        .update({ status: "pending", sent_at: nowIso })
-        .eq("sender", profile.username)
-        .eq("status", "scheduled")
-        .lte("scheduled_at", nowIso);
-    };
-    tick();
-    const poll = setInterval(tick, 30_000);
-    const channel = supabase
-      .channel(`alerts:${profile.username}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "alerts" },
-        (payload) => {
-          const a = payload.new as Alert;
-          if (a.sender === profile.username || a.recipient === profile.username) {
-            setAlerts((prev) => [a, ...prev]);
-            handleIncoming(a);
-          }
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "alerts" },
-        (payload) => {
-          const a = payload.new as Alert;
-          setAlerts((prev) => prev.map((x) => (x.id === a.id ? a : x)));
-          if (a.status === "acknowledged") stopRepeat(a.id);
-        }
-      )
-      .subscribe();
+    const me = profile.username;
+    const seen = lastIdsRef.current;
+    const nextIds = new Set<string>();
+    for (const a of alerts) {
+      nextIds.add(a.id);
+      if (seen.has(a.id)) continue;
+      // New to us this render
+      if (a.recipient !== me) continue;
+      if (a.status !== "pending") continue;
+      if (playedRef.current.has(a.id)) continue;
+      playedRef.current.add(a.id);
+      ensureAudioReady();
+      if (a.type === "urgent") {
+        playChime();
+        toast.error(`URGENT ping from @${a.sender}`, { duration: 8000 });
+        const iv = setInterval(() => playChime(), 10_000);
+        repeatTimers.current.set(a.id, iv);
+        const stop = setTimeout(() => stopRepeat(a.id), 120_000);
+        stopTimers.current.set(a.id, stop);
+      } else {
+        playDing();
+        toast(`Ping from @${a.sender}`);
+      }
+    }
+    // Stop repeats for alerts that became acknowledged
+    for (const a of alerts) {
+      if (a.status === "acknowledged") stopRepeat(a.id);
+    }
+    lastIdsRef.current = nextIds;
+  }, [alerts, profile]);
+
+  // Cleanup all timers on unmount
+  useEffect(() => {
     return () => {
-      clearInterval(poll);
-      supabase.removeChannel(channel);
       repeatTimers.current.forEach((t) => clearInterval(t));
       stopTimers.current.forEach((t) => clearTimeout(t));
       repeatTimers.current.clear();
       stopTimers.current.clear();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profile?.username]);
+  }, []);
 
   const acknowledge = async (id: string) => {
     stopRepeat(id);
     const a = alerts.find((x) => x.id === id);
-    await supabase
-      .from("alerts")
-      .update({ status: "acknowledged", ack_at: new Date().toISOString() })
-      .eq("id", id);
+    mutate.ackAlert(id);
     if (a) {
       logActivity({
         event_type: "alert_acknowledged",
@@ -130,15 +101,20 @@ export function useAlerts() {
   }) => {
     if (!profile) return;
     const rows = params.recipients.map((r) => ({
+      id:
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `local-${Math.random().toString(36).slice(2)}`,
       task_id: params.task_id,
       type: params.type,
-      trigger: params.trigger ?? "now",
+      trigger: params.trigger ?? ("now" as const),
       scheduled_at: params.scheduled_at ?? null,
       sender: profile.username,
       recipient: r,
-      status: params.trigger === "scheduled" ? ("scheduled" as const) : ("pending" as const),
+      status:
+        params.trigger === "scheduled" ? ("scheduled" as const) : ("pending" as const),
     }));
-    await supabase.from("alerts").insert(rows);
+    mutate.sendAlerts(rows);
     for (const r of params.recipients) {
       logActivity({
         event_type: "alert_sent",
@@ -146,8 +122,12 @@ export function useAlerts() {
         meta: { recipient: r, alert_type: params.type },
       });
     }
-    await refetch();
   };
 
-  return { alerts, acknowledge, send, refetch };
+  const refetch = async () => {
+    manualSync();
+  };
+
+  // Expose alerts as readonly Alert[] (typed)
+  return { alerts: alerts as Alert[], acknowledge, send, refetch };
 }

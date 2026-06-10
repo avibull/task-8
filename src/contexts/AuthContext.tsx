@@ -1,9 +1,11 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Profile } from "@/lib/types";
+import { bootStore, teardownStore } from "@/lib/localdb";
 
 interface AuthCtx {
   profile: Profile | null;
+  userId: string | null;
   loading: boolean;
   signOut: () => Promise<void>;
   refresh: () => Promise<void>;
@@ -11,6 +13,7 @@ interface AuthCtx {
 
 const Ctx = createContext<AuthCtx>({
   profile: null,
+  userId: null,
   loading: true,
   signOut: async () => {},
   refresh: async () => {},
@@ -19,67 +22,79 @@ const Ctx = createContext<AuthCtx>({
 function withTimeout<T>(p: Promise<T>, ms: number): Promise<T | null> {
   return new Promise((resolve) => {
     const t = setTimeout(() => resolve(null), ms);
-    p.then((v) => { clearTimeout(t); resolve(v); })
-     .catch(() => { clearTimeout(t); resolve(null); });
+    p.then((v) => {
+      clearTimeout(t);
+      resolve(v);
+    }).catch(() => {
+      clearTimeout(t);
+      resolve(null);
+    });
   });
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Two-phase loader:
-  //  1. Read the session synchronously from local storage; end the global
-  //     loading state immediately so the UI never hangs on flaky mobile networks.
-  //  2. Best-effort profile fetch in the background, with a timeout.
+  /**
+   * Restore session from localStorage immediately (sync read), end loading,
+   * then best-effort fetch the profile in the background with a hard timeout.
+   */
   const loadProfile = async () => {
-    let userId: string | null = null;
+    let uid: string | null = null;
     try {
       const { data } = await supabase.auth.getSession();
-      userId = data.session?.user?.id ?? null;
+      uid = data.session?.user?.id ?? null;
     } catch {
-      userId = null;
+      uid = null;
     }
 
-    if (!userId) {
+    setUserId(uid);
+
+    if (!uid) {
       setProfile(null);
       setLoading(false);
+      await teardownStore();
       return;
     }
 
-    // End loading immediately so route guards can run.
+    // End loading immediately — UI can render even before profile arrives.
     setLoading(false);
 
     const result = await withTimeout(
       Promise.resolve(
-        supabase.from("profiles").select("*").eq("id", userId).maybeSingle()
+        supabase.from("profiles").select("*").eq("id", uid).maybeSingle(),
       ),
-      6000,
+      8000,
     );
 
     if (!result) {
-      // Timed out or transient error — recover by clearing the bad session
-      // so the login screen appears instead of hanging forever.
-      console.warn("[auth] profile fetch timed out; signing out");
-      try { await supabase.auth.signOut(); } catch {}
-      setProfile(null);
+      // Network blip — keep whatever profile we already have; the local
+      // store is still usable from cached IDB data.
       return;
     }
 
     const { data, error } = result as { data: Profile | null; error: unknown };
     if (error) {
       console.warn("[auth] profile fetch failed:", error);
-      setProfile(null);
       return;
     }
-    setProfile(data ?? null);
+    if (data) {
+      setProfile(data);
+      // Boot the local store (no-op if already booted for same user).
+      void bootStore(data.username);
+    }
   };
 
   useEffect(() => {
-    loadProfile();
+    void loadProfile();
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") {
-        loadProfile();
+      // Narrow filter: ignore USER_UPDATED / TOKEN_REFRESHED / INITIAL_SESSION
+      // which fire on every focus and silent token refresh, causing redundant
+      // profile fetches.
+      if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
+        void loadProfile();
       }
     });
     return () => sub.subscription.unsubscribe();
@@ -89,11 +104,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <Ctx.Provider
       value={{
         profile,
+        userId,
         loading,
         refresh: loadProfile,
         signOut: async () => {
+          await teardownStore();
           await supabase.auth.signOut();
           setProfile(null);
+          setUserId(null);
         },
       }}
     >
