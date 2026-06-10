@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import type { Profile } from "@/lib/types";
+import type { DirectoryProfile } from "@/lib/profilesCache";
 import { PickerSheet } from "./PickerSheet";
 
 interface Props {
@@ -18,15 +18,13 @@ interface Props {
 /** Reusable user picker — used in AddBar, drawer ASSIGN, and alert recipients. */
 export function UserPicker({ selected, onToggle, onClose, excludeSelf = true, title = "ASSIGN USERS" }: Props) {
   const { profile } = useAuth();
-  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [profiles, setProfiles] = useState<DirectoryProfile[]>([]);
 
   useEffect(() => {
-    supabase
-      .from("profiles")
-      .select("*")
-      .eq("is_active", true)
-      .order("name")
-      .then(({ data }) => setProfiles((data as Profile[]) ?? []));
+    supabase.rpc("list_active_profiles").then(({ data }) => {
+      const rows = ((data as DirectoryProfile[]) ?? []).slice().sort((a, b) => a.name.localeCompare(b.name));
+      setProfiles(rows);
+    });
   }, []);
 
   const items = profiles
