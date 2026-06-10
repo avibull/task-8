@@ -248,7 +248,7 @@ function TasksPage() {
         <AddBar onAdd={handleAdd} />
         <SortControl value={sort} onChange={setSort} />
 
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto" style={{ overscrollBehaviorY: "contain" }}>
           {tasksLoading ? (
             <TaskListSkeleton />
           ) : filtered.length === 0 ? (
