@@ -155,6 +155,7 @@ function TasksPage() {
 
         <FilterBar scope={scope} onScope={setScope} tag={tagFilter} onTag={setTagFilter} />
         <AddBar onAdd={handleAdd} />
+        <SortControl value={sort} onChange={setSort} />
 
         <main className="flex-1 overflow-y-auto">
           <SectionHeader label="Active" count={active.length} />
