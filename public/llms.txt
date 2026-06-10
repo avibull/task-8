@@ -1,0 +1,13 @@
+# task8
+
+> task8 is an ultra-fast, multi-user task management app for teams — capture, assign, tag, and ping tasks at the speed of thought.
+
+task8 is a private, login-gated team productivity tool. Members create tasks in a dense inbox, assign them to teammates, tag them, and send real-time pings/alerts. Sorting, filtering, drag-to-reorder, and PWA install are supported.
+
+## Pages
+
+- [Login](/login): Sign in with employee ID and PIN.
+
+## Optional
+
+- [Home](/): Landing redirect into the app.
