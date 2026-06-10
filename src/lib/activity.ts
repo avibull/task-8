@@ -32,7 +32,7 @@ export async function logActivity(args: {
       event_type: args.event_type,
       task_id: args.task_id ?? null,
       alert_id: args.alert_id ?? null,
-      meta: args.meta ?? {},
+      meta: (args.meta ?? {}) as never,
     });
   } catch {
     // swallow — logging must never break the UX
