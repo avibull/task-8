@@ -348,9 +348,12 @@ async function runOp(op: PendingOp): Promise<"ok" | "retry" | "drop"> {
         return classify(error);
       }
       case "activity.log": {
-        const { error } = await supabase.from("activity_log").insert(op.row);
+        const { error } = await supabase
+          .from("activity_log")
+          .insert({ ...op.row, meta: op.row.meta as never });
         return classify(error);
       }
+
     }
   } catch {
     return "retry";
@@ -441,7 +444,18 @@ export const mutate = {
     enqueue({ id: newId(), kind: "task.reorder", orderedIds });
   },
 
-  sendAlerts(rows: PendingOp extends { kind: "alert.send"; rows: infer R } ? R : never) {
+  sendAlerts(
+    rows: Array<{
+      id: string;
+      task_id: string;
+      type: "normal" | "urgent";
+      trigger: "now" | "scheduled";
+      scheduled_at: string | null;
+      sender: string;
+      recipient: string;
+      status: "pending" | "scheduled";
+    }>,
+  ) {
     // Optimistic: add the rows to local snap
     const ts = new Date().toISOString();
     const local: Alert[] = rows.map((r) => ({
@@ -460,6 +474,7 @@ export const mutate = {
     update({ alerts: [...local, ...snap.alerts] });
     enqueue({ id: newId(), kind: "alert.send", rows });
   },
+
 
   ackAlert(alertId: string) {
     const i = snap.alerts.findIndex((a) => a.id === alertId);
