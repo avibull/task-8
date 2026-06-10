@@ -130,7 +130,7 @@ function ActivityRow({
 function describe(
   type: ActivityLogRow["event_type"],
   meta: { task_text?: string; recipient?: string; sender?: string; alert_type?: string }
-): { icon: JSX.Element; line: JSX.Element } {
+): { icon: ReactNode; line: ReactNode } {
   const t = meta.task_text ?? "(untitled)";
   switch (type) {
     case "task_created":
