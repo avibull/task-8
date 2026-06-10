@@ -22,6 +22,8 @@ import { AlertsPanel } from "@/components/AlertsPanel";
 import { SortControl, type SortKey } from "@/components/SortControl";
 import { MentionProvider } from "@/contexts/MentionContext";
 import { TaskListSkeleton } from "@/components/TaskListSkeleton";
+import { SyncStatus } from "@/components/SyncStatus";
+
 import type { Alert, Priority, Task } from "@/lib/types";
 
 const PRIO_RANK: Record<Priority, number> = { P1: 0, P2: 1, P3: 2, Daily: 3, None: 4 };
@@ -210,9 +212,13 @@ function TasksPage() {
       <div className="flex min-h-screen flex-col bg-background">
         <header className="flex items-center justify-between border-b border-border bg-panel px-4 py-3">
           <h1 className="sr-only">Tasks — Collaborative management</h1>
-          <div className="mono text-base font-bold" aria-hidden="true">
-            task<span className="text-accent-lime">·</span>8
+          <div className="mono flex items-center gap-2 text-base font-bold">
+            <span aria-hidden="true">
+              task<span className="text-accent-lime">·</span>8
+            </span>
+            <SyncStatus />
           </div>
+
           <div className="flex items-center gap-3">
             <Link to="/settings" aria-label="Settings" className="text-dim hover:text-foreground">
               <SettingsIcon size={18} />
@@ -242,7 +248,7 @@ function TasksPage() {
         <AddBar onAdd={handleAdd} />
         <SortControl value={sort} onChange={setSort} />
 
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto" style={{ overscrollBehaviorY: "contain" }}>
           {tasksLoading ? (
             <TaskListSkeleton />
           ) : filtered.length === 0 ? (

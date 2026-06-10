@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { mutate, store } from "@/lib/localdb";
 
 export type ActivityEventType =
   | "task_created"
@@ -17,30 +18,63 @@ export interface ActivityLogRow {
   created_at: string;
 }
 
-/** Fire-and-forget activity log insert. Never throws. */
-export async function logActivity(args: {
+/**
+ * Fire-and-forget activity log. Queued through the outbox so it survives
+ * offline use. Reads the user id from the cached session (no network).
+ */
+export function logActivity(args: {
   event_type: ActivityEventType;
   task_id?: string | null;
   alert_id?: string | null;
   meta?: Record<string, unknown>;
 }) {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    await supabase.from("activity_log").insert({
-      user_id: user.id,
+    // Resolve user id without a network call.
+    const sessionUser = readCachedUserId();
+    if (!sessionUser) return;
+    mutate.logActivity({
+      user_id: sessionUser,
       event_type: args.event_type,
       task_id: args.task_id ?? null,
       alert_id: args.alert_id ?? null,
-      meta: (args.meta ?? {}) as never,
+      meta: args.meta ?? {},
     });
   } catch {
-    // swallow — logging must never break the UX
+    /* never throw from telemetry */
   }
 }
 
-/** Fetch a page of activity entries. Pass the createdAt of the last item for "load more". */
-export async function fetchActivity(before?: string | null, pageSize = 10): Promise<ActivityLogRow[]> {
+/** Read the user's id from the persisted Supabase session in localStorage. */
+function readCachedUserId(): string | null {
+  if (typeof window === "undefined") return null;
+  // Prefer the auth subscriber pattern via cached snapshot; fall back to localStorage.
+  // store has no userId, so peek into the session storage keys Supabase uses.
+  try {
+    for (let i = 0; i < window.localStorage.length; i++) {
+      const k = window.localStorage.key(i);
+      if (!k) continue;
+      if (k.startsWith("sb-") && k.endsWith("-auth-token")) {
+        const raw = window.localStorage.getItem(k);
+        if (!raw) continue;
+        const parsed = JSON.parse(raw);
+        const uid =
+          parsed?.user?.id ??
+          parsed?.currentSession?.user?.id ??
+          parsed?.session?.user?.id;
+        if (uid) return uid as string;
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
+/** Fetch a page of activity entries. */
+export async function fetchActivity(
+  before?: string | null,
+  pageSize = 10,
+): Promise<ActivityLogRow[]> {
   let q = supabase
     .from("activity_log")
     .select("*")
@@ -50,3 +84,7 @@ export async function fetchActivity(before?: string | null, pageSize = 10): Prom
   const { data } = await q;
   return (data as ActivityLogRow[]) ?? [];
 }
+
+// Touch store import so tree-shaker keeps localdb side-effects when this
+// module is reached first (e.g., dev HMR).
+void store;

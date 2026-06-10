@@ -1,94 +1,76 @@
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useSyncExternalStore } from "react";
 import type { Task } from "@/lib/types";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { store, mutate, manualSync } from "@/lib/localdb";
 import { logActivity } from "@/lib/activity";
 
+/**
+ * Tasks hook backed by the local store. Reads are synchronous from the
+ * in-memory mirror; mutations are optimistic and queued in the outbox.
+ * Realtime patches the mirror in the background.
+ */
 export function useTasks() {
   const { profile } = useAuth();
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
+  const snap = useSyncExternalStore(store.subscribe, store.get, store.get);
+  const tasks = snap.tasks;
+  const loading = !snap.hydrated;
 
-  const refetch = async () => {
-    const { data } = await supabase.from("tasks").select("*").limit(1000);
-    setTasks(((data as Task[]) ?? []));
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    if (!profile) return;
-    refetch();
-    const ch = supabase
-      .channel("tasks_live")
-      .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, () => {
-        refetch();
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profile?.username]);
-
-  const create = async (text: string, explicitTags?: string[], assignedTo?: string[]): Promise<string | null> => {
+  const create = async (
+    text: string,
+    explicitTags?: string[],
+    assignedTo?: string[],
+  ): Promise<string | null> => {
     if (!profile || !text.trim()) return null;
-    const base: string[] = explicitTags && explicitTags.length > 0 ? explicitTags : [];
-    // Validate non-@ tags exist
-    const nonAt = Array.from(new Set(base)).filter((t) => !t.startsWith("@"));
-    let validTags: string[] = nonAt;
-    if (nonAt.length > 0) {
-      const { data: rows } = await supabase.from("tags").select("name").in("name", nonAt);
-      const ok = new Set((rows ?? []).map((r) => r.name));
-      validTags = nonAt.filter((t) => ok.has(t));
-    }
-    const assigned_to = Array.from(new Set((assignedTo ?? []).map((u) => u.replace(/^@/, ""))));
-    const { data } = await supabase.from("tasks").insert({
+
+    // Validate non-@ tag names against the local cache (no network).
+    const base = explicitTags ?? [];
+    const tagSet = new Set(snap.tags.map((t) => t.name));
+    const validTags = Array.from(new Set(base)).filter(
+      (t) => t.startsWith("@") || tagSet.has(t),
+    );
+    const assigned = Array.from(new Set((assignedTo ?? []).map((u) => u.replace(/^@/, ""))));
+
+    const row = mutate.createTask({
       text: text.trim(),
-      priority: "P1",
       tags: validTags,
-      assigned_to,
+      assigned_to: assigned,
       created_by: profile.username,
-    }).select("id").single();
-    const id = (data?.id as string) ?? null;
-    if (id) logActivity({ event_type: "task_created", task_id: id, meta: { task_text: text.trim() } });
-    return id;
+    });
+    logActivity({ event_type: "task_created", task_id: row.id, meta: { task_text: row.text } });
+    return row.id;
   };
 
   const toggle = async (t: Task) => {
-    const becomingComplete = !t.completed;
-    await supabase
-      .from("tasks")
-      .update({
-        completed: becomingComplete,
-        completed_at: becomingComplete ? new Date().toISOString() : null,
-      })
-      .eq("id", t.id);
-    if (becomingComplete) {
+    mutate.toggleTask(t.id);
+    if (!t.completed) {
+      // becoming complete
       logActivity({ event_type: "task_completed", task_id: t.id, meta: { task_text: t.text } });
     }
   };
 
   const update = async (id: string, patch: Partial<Task>) => {
-    await supabase.from("tasks").update(patch).eq("id", id);
+    mutate.updateTask(id, patch);
   };
 
   const remove = async (id: string) => {
     const t = tasks.find((x) => x.id === id);
-    await supabase.from("tasks").delete().eq("id", id);
-    if (t) logActivity({ event_type: "task_deleted", task_id: null, meta: { task_text: t.text } });
+    mutate.deleteTask(id);
+    if (t) {
+      logActivity({ event_type: "task_deleted", task_id: null, meta: { task_text: t.text } });
+    }
   };
 
-  /** Persist a new ordering. Assigns sort_order to each id by its index (lowest = top). */
   const reorder = async (orderedIds: string[]) => {
-    // Optimistic local update
-    setTasks((prev) => {
-      const idx = new Map(orderedIds.map((id, i) => [id, i]));
-      return prev.map((t) => (idx.has(t.id) ? { ...t, sort_order: idx.get(t.id)! } : t));
-    });
-    await Promise.all(
-      orderedIds.map((id, i) =>
-        supabase.from("tasks").update({ sort_order: i }).eq("id", id)
-      )
-    );
+    mutate.reorderTasks(orderedIds);
+  };
+
+  const refetch = async () => {
+    manualSync();
   };
 
   return { tasks, loading, create, toggle, update, remove, reorder, refetch };
 }
+
+// Re-export for callers that previously used supabase directly.
+export { supabase };
