@@ -3,7 +3,7 @@ import { Check } from "lucide-react";
 import type { Alert, Priority, Task } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { PriorityBadge } from "./PriorityBadge";
-import { formatDistanceToNow } from "date-fns";
+
 import { UserPicker } from "./UserPicker";
 import { TagPicker } from "./TagPicker";
 import { UserMention } from "./UserMention";
@@ -23,7 +23,8 @@ interface Props {
   onDelete: () => void;
 }
 
-const PRIO_CYCLE: Priority[] = ["None", "P1", "P2", "P3", "Daily"];
+
+const PRIO_CYCLE: Priority[] = ["P1", "P2", "P3", "Daily", "None"];
 
 export function TaskRow({
   task, alerts, expanded, pulse, onToggleComplete, onExpand,
@@ -35,6 +36,7 @@ export function TaskRow({
   const [showTags, setShowTags] = useState(false);
 
   const canAssign = !!profile && (profile.is_admin || task.created_by === profile.username);
+  const isMine = profile?.username === task.created_by;
 
   const toggleUser = (u: string) => {
     const next = task.assigned_to.includes(u)
@@ -45,6 +47,11 @@ export function TaskRow({
   const togglePlain = (name: string) => {
     const next = task.tags.includes(name) ? task.tags.filter((t) => t !== name) : [...task.tags, name];
     onUpdateTags(next);
+  };
+
+  const cyclePriority = () => {
+    const i = PRIO_CYCLE.indexOf(task.priority);
+    onChangePriority(PRIO_CYCLE[(i + 1) % PRIO_CYCLE.length]);
   };
 
   return (
@@ -72,65 +79,50 @@ export function TaskRow({
             {task.text}
           </div>
         </div>
-        {(task.assigned_to.length > 0 || task.tags.length > 0) && (
-          <div
-            className="mono mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px]"
-            style={{ paddingLeft: "calc(1.25rem + 0.5rem + 1.75rem + 0.5rem)" }}
-          >
-            {task.assigned_to.slice(0, 5).map((u) => (
-              <UserMention key={`a:${u}`} username={u} task={task} className="text-[10px] text-accent-lime underline decoration-dotted underline-offset-2" />
-            ))}
-            {task.tags.slice(0, 5).map((t) => (
-              <span key={`t:${t}`} className="text-dim">#{t}</span>
-            ))}
-          </div>
-        )}
+        <div
+          className="mono mt-1 flex items-center gap-x-1.5 overflow-x-auto whitespace-nowrap text-[10px] [&::-webkit-scrollbar]:hidden"
+          style={{ paddingLeft: "calc(1.25rem + 0.5rem + 1.75rem + 0.5rem)", scrollbarWidth: "none" }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {task.assigned_to.map((u) => (
+            <UserMention key={`a:${u}`} username={u} task={task} className="shrink-0 text-[10px] text-accent-lime underline decoration-dotted underline-offset-2" />
+          ))}
+          {task.tags.map((t) => (
+            <span key={`t:${t}`} className="shrink-0 text-dim">#{t}</span>
+          ))}
+          <span className="shrink-0 text-dim">·</span>
+          {isMine ? (
+            <span className="shrink-0 text-dim">by you</span>
+          ) : (
+            <span className="shrink-0 text-dim inline-flex items-center gap-1">
+              by <UserMention username={task.created_by} task={task} className="text-[10px] text-accent-lime underline decoration-dotted underline-offset-2" />
+            </span>
+          )}
+        </div>
       </div>
 
       {expanded && (
         <div className="border-t border-border bg-panel-2 px-3 py-3">
-          <div className="mb-2 grid grid-cols-4 gap-1.5">
-            <button onClick={onSendAlert} className="mono rounded-[3px] border border-accent-lime bg-panel px-2 py-2 text-[10px] uppercase text-accent-lime">Send alert</button>
+          <div className="grid grid-cols-5 gap-1.5">
+            <button onClick={onSendAlert} className="mono rounded-[3px] border border-accent-lime bg-panel px-1 py-2 text-[10px] uppercase text-accent-lime">Alert</button>
             <button
               onClick={() => canAssign && setShowAssign(true)}
               disabled={!canAssign}
               title={canAssign ? "" : "Only the assigner can change this."}
               className={cn(
-                "mono rounded-[3px] border border-border bg-panel px-2 py-2 text-[10px] uppercase",
+                "mono rounded-[3px] border border-border bg-panel px-1 py-2 text-[10px] uppercase",
                 !canAssign && "opacity-40 cursor-not-allowed"
               )}
             >Assign</button>
-            <button onClick={() => setShowTags(true)} className="mono rounded-[3px] border border-border bg-panel px-2 py-2 text-[10px] uppercase">Tags</button>
-            <button onClick={onDelete} className="mono rounded-[3px] border border-[color:var(--p1)] bg-panel px-2 py-2 text-[10px] uppercase text-[color:var(--p1)]">Delete</button>
-          </div>
-
-          <button
-            onClick={() => {
-              const i = PRIO_CYCLE.indexOf(task.priority);
-              onChangePriority(PRIO_CYCLE[(i + 1) % PRIO_CYCLE.length]);
-            }}
-            className="mono mb-2 w-full rounded-[3px] border border-border bg-panel px-2 py-1.5 text-[10px] uppercase"
-          >
-            Priority: {task.priority} (tap to cycle)
-          </button>
-
-          {(task.assigned_to.length > 0 || task.tags.length > 0) && (
-            <div className="mb-2 flex flex-wrap gap-1">
-              {task.assigned_to.map((u) => (
-                <span key={u} className="mono inline-block rounded-[3px] border border-accent-lime px-1.5 py-0.5 text-[10px]">
-                  <UserMention username={u} task={task} />
-                </span>
-              ))}
-              {task.tags.map((t) => (
-                <span key={t} className="mono rounded-[3px] border border-border px-1.5 py-0.5 text-[10px] text-dim">#{t}</span>
-              ))}
-            </div>
-          )}
-
-          <div className="mono flex flex-wrap items-center gap-1 text-[10px] text-dim">
-            <span>assigned by</span>
-            <UserMention username={task.created_by} task={task} className="text-[10px] text-accent-lime underline decoration-dotted underline-offset-2" />
-            <span>· {formatDistanceToNow(new Date(task.created_at), { addSuffix: true })}</span>
+            <button
+              onClick={cyclePriority}
+              className="mono rounded-[3px] border border-border bg-panel px-1 py-2 text-[10px] uppercase flex items-center justify-center"
+              title="Tap to cycle priority"
+            >
+              <PriorityBadge p={task.priority} />
+            </button>
+            <button onClick={() => setShowTags(true)} className="mono rounded-[3px] border border-border bg-panel px-1 py-2 text-[10px] uppercase">Tags</button>
+            <button onClick={onDelete} className="mono rounded-[3px] border border-[color:var(--p1)] bg-panel px-1 py-2 text-[10px] uppercase text-[color:var(--p1)]">Delete</button>
           </div>
 
           {taskAlerts.length > 0 && (

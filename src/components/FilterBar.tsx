@@ -19,7 +19,7 @@ export function FilterBar({ scope, onScope, tag, onTag }: Props) {
 
   const scopes: { key: Scope; label: string }[] = [
     { key: "mine", label: "Mine" },
-    { key: "delegated", label: "Delegated" },
+    { key: "delegated", label: "Assigned" },
     { key: "all", label: "All" },
   ];
 

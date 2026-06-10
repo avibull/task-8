@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import type { Task, Priority } from "@/lib/types";
+import type { Task } from "@/lib/types";
 import { useAuth } from "@/contexts/AuthContext";
-
-const PRIO_RANK: Record<Priority, number> = { P1: 0, P2: 1, P3: 2, Daily: 3, None: 4 };
 
 export function useTasks() {
   const { profile } = useAuth();
@@ -12,14 +10,7 @@ export function useTasks() {
 
   const refetch = async () => {
     const { data } = await supabase.from("tasks").select("*").limit(1000);
-    const sorted = ((data as Task[]) ?? []).sort((a, b) => {
-      if (a.completed !== b.completed) return a.completed ? 1 : -1;
-      const p = PRIO_RANK[a.priority] - PRIO_RANK[b.priority];
-      if (p !== 0) return p;
-      if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
-      return b.created_at.localeCompare(a.created_at);
-    });
-    setTasks(sorted);
+    setTasks(((data as Task[]) ?? []));
     setLoading(false);
   };
 
