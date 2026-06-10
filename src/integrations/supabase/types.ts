@@ -179,7 +179,17 @@ export type Database = {
     Functions: {
       can_edit_tags: { Args: never; Returns: boolean }
       current_username: { Args: never; Returns: string }
+      get_user_phone: { Args: { _username: string }; Returns: string }
       is_admin: { Args: never; Returns: boolean }
+      list_active_profiles: {
+        Args: never
+        Returns: {
+          id: string
+          is_active: boolean
+          name: string
+          username: string
+        }[]
+      }
     }
     Enums: {
       alert_status: "pending" | "acknowledged" | "scheduled"

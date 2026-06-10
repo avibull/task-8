@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Send } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { useProfileByUsername } from "@/lib/profilesCache";
@@ -36,13 +36,23 @@ export function UserMention({ username, task, className }: Props) {
   const profile = useProfileByUsername(username);
   const { onPingTask } = useMention();
   const [open, setOpen] = useState(false);
+  const [phone, setPhone] = useState<string>("");
 
-  const phone = profile?.phone ?? "";
+  useEffect(() => {
+    if (!open || phone) return;
+    import("@/integrations/supabase/client").then(({ supabase }) =>
+      supabase.rpc("get_user_phone", { _username: username }).then(({ data }) => {
+        if (typeof data === "string") setPhone(data);
+      })
+    );
+  }, [open, phone, username]);
+
   const digits = phone.replace(/\D/g, "");
   const waHref = digits ? `https://wa.me/${digits}` : null;
 
 
   const canPing = !!task && !!onPingTask;
+
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
