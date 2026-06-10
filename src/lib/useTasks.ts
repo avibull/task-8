@@ -67,5 +67,19 @@ export function useTasks() {
     await supabase.from("tasks").delete().eq("id", id);
   };
 
-  return { tasks, loading, create, toggle, update, remove, refetch };
+  /** Persist a new ordering. Assigns sort_order to each id by its index (lowest = top). */
+  const reorder = async (orderedIds: string[]) => {
+    // Optimistic local update
+    setTasks((prev) => {
+      const idx = new Map(orderedIds.map((id, i) => [id, i]));
+      return prev.map((t) => (idx.has(t.id) ? { ...t, sort_order: idx.get(t.id)! } : t));
+    });
+    await Promise.all(
+      orderedIds.map((id, i) =>
+        supabase.from("tasks").update({ sort_order: i }).eq("id", id)
+      )
+    );
+  };
+
+  return { tasks, loading, create, toggle, update, remove, reorder, refetch };
 }

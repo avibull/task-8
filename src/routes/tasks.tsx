@@ -1,12 +1,22 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Bell, Settings as SettingsIcon } from "lucide-react";
+import {
+  DndContext,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  closestCenter,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import { SortableContext, arrayMove, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTasks } from "@/lib/useTasks";
 import { useAlerts } from "@/lib/useAlerts";
 import { FilterBar, type Scope } from "@/components/FilterBar";
 import { AddBar } from "@/components/AddBar";
-import { TaskRow } from "@/components/TaskRow";
+import { SortableTaskRow } from "@/components/SortableTaskRow";
 import { ActionSheet } from "@/components/ActionSheet";
 import { AlertsPanel } from "@/components/AlertsPanel";
 import { SortControl, type SortKey } from "@/components/SortControl";
@@ -21,6 +31,8 @@ function applySort(list: Task[], sort: SortKey): Task[] {
   const done = list.filter((t) => t.completed);
   const cmp = (a: Task, b: Task): number => {
     switch (sort) {
+      case "custom":
+        return a.sort_order - b.sort_order || b.created_at.localeCompare(a.created_at);
       case "priority_desc":
         return PRIO_RANK[a.priority] - PRIO_RANK[b.priority] || b.created_at.localeCompare(a.created_at);
       case "priority_asc":
@@ -33,6 +45,8 @@ function applySort(list: Task[], sort: SortKey): Task[] {
         return a.text.localeCompare(b.text);
       case "za":
         return b.text.localeCompare(a.text);
+      default:
+        return 0;
     }
   };
   return [...incomplete.sort(cmp), ...done.sort(cmp)];
@@ -43,10 +57,10 @@ export const Route = createFileRoute("/tasks")({ component: TasksPage });
 function TasksPage() {
   const nav = useNavigate();
   const { profile, loading } = useAuth();
-  const { tasks, create, toggle, update, remove } = useTasks();
+  const { tasks, create, toggle, update, remove, reorder } = useTasks();
   const { alerts, acknowledge, send } = useAlerts();
   const [scope, setScope] = useState<Scope>("mine");
-  const [tagFilter, setTagFilter] = useState<string | null>(null);
+  const [tagFilters, setTagFilters] = useState<string[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [pulseId, setPulseId] = useState<string | null>(null);
   const [sheetTask, setSheetTask] = useState<Task | null>(null);
@@ -66,6 +80,12 @@ function TasksPage() {
     if (!loading && !profile) nav({ to: "/login", replace: true });
   }, [loading, profile, nav]);
 
+  // Long-press (500ms) to activate drag; tap remains tap-to-expand.
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { delay: 500, tolerance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 500, tolerance: 6 } }),
+  );
+
   const me = profile?.username ?? "";
 
   const filtered = useMemo(() => {
@@ -80,9 +100,11 @@ function TasksPage() {
         t.created_by === me && t.assigned_to.some((u) => u !== me)
       );
     }
-    if (tagFilter) list = list.filter((t) => t.tags.includes(tagFilter));
+    if (tagFilters.length > 0) {
+      list = list.filter((t) => tagFilters.every((tag) => t.tags.includes(tag)));
+    }
     return applySort(list, sort);
-  }, [tasks, scope, tagFilter, me, sort]);
+  }, [tasks, scope, tagFilters, me, sort]);
 
   const active = filtered.filter((t) => !t.completed);
   const done = filtered.filter((t) => t.completed);
@@ -92,7 +114,6 @@ function TasksPage() {
   if (loading || !profile) {
     return <div className="mono flex min-h-screen items-center justify-center bg-background text-xs text-dim">loading…</div>;
   }
-
 
   const handleAdd = async (text: string, tags: string[], assigned: string[]) => {
     const id = await create(text, tags, assigned);
@@ -105,6 +126,9 @@ function TasksPage() {
       if (el) el.scrollIntoView({ block: "center", behavior: "smooth" });
     });
   };
+
+  const toggleTag = (name: string) =>
+    setTagFilters((s) => (s.includes(name) ? s.filter((x) => x !== name) : [...s, name]));
 
   const rowProps = (t: Task) => ({
     key: t.id,
@@ -120,6 +144,21 @@ function TasksPage() {
     onUpdateAssignees: (assigned_to: string[]) => update(t.id, { assigned_to }),
     onDelete: () => { remove(t.id); setExpandedId(null); },
   });
+
+  const handleDragEnd = (e: DragEndEvent) => {
+    const { active: a, over } = e;
+    if (!over || a.id === over.id) return;
+    // Reorder within the full visible list (active + done) using current displayed order.
+    const ids = [...active.map((t) => t.id), ...done.map((t) => t.id)];
+    const from = ids.indexOf(String(a.id));
+    const to = ids.indexOf(String(over.id));
+    if (from < 0 || to < 0) return;
+    const next = arrayMove(ids, from, to);
+    reorder(next);
+    if (sort !== "custom") setSort("custom");
+  };
+
+  const allIds = [...active.map((t) => t.id), ...done.map((t) => t.id)];
 
   return (
     <MentionProvider
@@ -153,16 +192,26 @@ function TasksPage() {
           </div>
         </header>
 
-        <FilterBar scope={scope} onScope={setScope} tag={tagFilter} onTag={setTagFilter} />
+        <FilterBar
+          scope={scope}
+          onScope={setScope}
+          tags={tagFilters}
+          onToggleTag={toggleTag}
+          onClearTags={() => setTagFilters([])}
+        />
         <AddBar onAdd={handleAdd} />
         <SortControl value={sort} onChange={setSort} />
 
         <main className="flex-1 overflow-y-auto">
-          <SectionHeader label="Active" count={active.length} />
-          {active.map((t) => (<TaskRow {...rowProps(t)} />))}
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={allIds} strategy={verticalListSortingStrategy}>
+              <SectionHeader label="Active" count={active.length} />
+              {active.map((t) => (<SortableTaskRow {...rowProps(t)} />))}
 
-          <SectionHeader label="Done" count={done.length} />
-          {done.map((t) => (<TaskRow {...rowProps(t)} />))}
+              <SectionHeader label="Done" count={done.length} />
+              {done.map((t) => (<SortableTaskRow {...rowProps(t)} />))}
+            </SortableContext>
+          </DndContext>
           <div className="h-24" />
         </main>
 
