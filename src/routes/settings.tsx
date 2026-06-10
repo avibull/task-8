@@ -7,6 +7,7 @@ import { useTags } from "@/contexts/TagsContext";
 import { changePin } from "@/lib/bootstrap.functions";
 import { canManageTags, canManageUsers } from "@/lib/types";
 import { AdminPanel } from "@/components/AdminPanel";
+import { ActivityLog } from "@/components/ActivityLog";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
