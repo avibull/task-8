@@ -244,15 +244,21 @@ function TasksPage() {
         <SortControl value={sort} onChange={setSort} />
 
         <main className="flex-1 overflow-y-auto">
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={allIds} strategy={verticalListSortingStrategy}>
-              <SectionHeader label="Active" count={active.length} />
-              {active.map((t) => (<SortableTaskRow {...rowProps(t)} />))}
+          {tasksLoading ? (
+            <TaskListSkeleton />
+          ) : filtered.length === 0 ? (
+            <EmptyTasks scope={scope} tagFilters={tagFilters} />
+          ) : (
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={allIds} strategy={verticalListSortingStrategy}>
+                <SectionHeader label="Active" count={active.length} />
+                {active.map((t) => (<SortableTaskRow {...rowProps(t)} />))}
 
-              <SectionHeader label="Done" count={done.length} />
-              {done.map((t) => (<SortableTaskRow {...rowProps(t)} />))}
-            </SortableContext>
-          </DndContext>
+                <SectionHeader label="Done" count={done.length} />
+                {done.map((t) => (<SortableTaskRow {...rowProps(t)} />))}
+              </SortableContext>
+            </DndContext>
+          )}
           <div className="h-24" />
         </main>
 
