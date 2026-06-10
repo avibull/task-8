@@ -23,19 +23,6 @@ interface Props {
   onDelete: () => void;
 }
 
-interface Props {
-  task: Task;
-  alerts: Alert[];
-  expanded: boolean;
-  pulse?: boolean;
-  onToggleComplete: () => void;
-  onExpand: () => void;
-  onSendAlert: () => void;
-  onChangePriority: (p: Priority) => void;
-  onUpdateTags: (tags: string[]) => void;
-  onUpdateAssignees: (assigned_to: string[]) => void;
-  onDelete: () => void;
-}
 
 const PRIO_CYCLE: Priority[] = ["None", "P1", "P2", "P3", "Daily"];
 
