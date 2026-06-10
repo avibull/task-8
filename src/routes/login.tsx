@@ -76,7 +76,7 @@ function LoginPage() {
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-6">
       <div className="mb-10">
         <h1 className="mono text-3xl font-bold tracking-tight text-foreground">
-          turbo<span className="text-accent-lime">·</span>task
+          task<span className="text-accent-lime">·</span>8
         </h1>
       </div>
 

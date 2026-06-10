@@ -58,10 +58,10 @@ export function InstallPrompt() {
       }}
     >
       <div className="mono flex h-8 w-8 shrink-0 items-center justify-center rounded-[3px] border border-border bg-panel-2 text-[11px] font-bold">
-        t<span className="text-accent-lime">·</span>t
+        t<span className="text-accent-lime">·</span>8
       </div>
       <div className="mono flex-1 text-[11px] text-foreground">
-        Install TurboTask as an app
+        Install task8 as an app
       </div>
       <button
         onClick={install}

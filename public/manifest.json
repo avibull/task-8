@@ -1,7 +1,7 @@
 {
-  "name": "TurboTask",
-  "short_name": "TurboTask",
-  "description": "Ultra-fast task capture for teams",
+  "name": "task8",
+  "short_name": "task8",
+  "description": "Fast team task management",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
