@@ -29,7 +29,8 @@ const WhatsAppIcon = ({ size = 16 }: { size?: number }) => (
 
 /**
  * Tappable @-mention. Opens a popover with WhatsApp + (optional) ping action.
- * Pass `task` when the mention is in a task context to enable ping + prefill WA text.
+ * Pass `task` only to enable the "Ping about this task" action — the WhatsApp
+ * link never prefills a message.
  */
 export function UserMention({ username, task, className }: Props) {
   const profile = useProfileByUsername(username);
@@ -38,10 +39,8 @@ export function UserMention({ username, task, className }: Props) {
 
   const phone = profile?.phone ?? "";
   const digits = phone.replace(/\D/g, "");
-  const textParam = task?.text
-    ? `?text=${encodeURIComponent("Turbo.Task.Reminder- " + task.text)}`
-    : "";
-  const waHref = digits ? `https://wa.me/${digits}${textParam}` : null;
+  const waHref = digits ? `https://wa.me/${digits}` : null;
+
 
   const canPing = !!task && !!onPingTask;
 
