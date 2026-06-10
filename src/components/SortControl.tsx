@@ -3,6 +3,7 @@ import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type SortKey =
+  | "custom"
   | "priority_desc"
   | "priority_asc"
   | "date_desc"
@@ -11,6 +12,7 @@ export type SortKey =
   | "za";
 
 export const SORT_LABELS: Record<SortKey, string> = {
+  custom: "Custom",
   priority_desc: "Priority ↓",
   priority_asc: "Priority ↑",
   date_desc: "Date added ↓",
@@ -19,7 +21,7 @@ export const SORT_LABELS: Record<SortKey, string> = {
   za: "Z → A",
 };
 
-const ORDER: SortKey[] = ["priority_desc", "priority_asc", "date_desc", "date_asc", "az", "za"];
+const ORDER: SortKey[] = ["custom", "priority_desc", "priority_asc", "date_desc", "date_asc", "az", "za"];
 
 export function SortControl({ value, onChange }: { value: SortKey; onChange: (s: SortKey) => void }) {
   const [open, setOpen] = useState(false);
