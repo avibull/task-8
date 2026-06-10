@@ -21,19 +21,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const loadProfile = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    try {
+      // Use getSession (reads from local storage, no network round-trip)
+      // so the loading state always resolves even on flaky mobile networks.
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user ?? null;
+      if (!user) {
+        setProfile(null);
+        return;
+      }
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (error) {
+        console.warn("[auth] profile fetch failed:", error.message);
+        setProfile(null);
+        return;
+      }
+      setProfile(data as Profile | null);
+    } catch (err) {
+      console.warn("[auth] loadProfile failed:", err);
       setProfile(null);
+    } finally {
       setLoading(false);
-      return;
     }
-    const { data } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", user.id)
-      .maybeSingle();
-    setProfile(data as Profile | null);
-    setLoading(false);
   };
 
   useEffect(() => {
