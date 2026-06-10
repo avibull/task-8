@@ -32,14 +32,38 @@ function withTimeout<T>(p: Promise<T>, ms: number): Promise<T | null> {
   });
 }
 
+const PROFILE_CACHE_KEY = "tt:profile";
+
+function readCachedProfile(): Profile | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(PROFILE_CACHE_KEY);
+    return raw ? (JSON.parse(raw) as Profile) : null;
+  } catch {
+    return null;
+  }
+}
+function writeCachedProfile(p: Profile | null) {
+  if (typeof window === "undefined") return;
+  try {
+    if (p) window.localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(p));
+    else window.localStorage.removeItem(PROFILE_CACHE_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [profile, setProfile] = useState<Profile | null>(null);
+  // Restore profile from local cache synchronously so the app renders
+  // instantly on cold start, even if the network is slow.
+  const [profile, setProfile] = useState<Profile | null>(() => readCachedProfile());
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   /**
-   * Restore session from localStorage immediately (sync read), end loading,
-   * then best-effort fetch the profile in the background with a hard timeout.
+   * Restore session from localStorage (sync read), boot the store from the
+   * cached profile immediately, then best-effort refresh the profile in the
+   * background. Loading ends as soon as we know whether a session exists.
    */
   const loadProfile = async () => {
     let uid: string | null = null;
@@ -54,38 +78,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (!uid) {
       setProfile(null);
+      writeCachedProfile(null);
       setLoading(false);
       await teardownStore();
       return;
     }
 
-    // End loading immediately — UI can render even before profile arrives.
+    // Boot from cached profile immediately if available.
+    const cached = readCachedProfile();
+    if (cached) {
+      setProfile(cached);
+      void bootStore(cached.username);
+    }
     setLoading(false);
 
+    // Background refresh — never blocks UI.
     const result = await withTimeout(
       Promise.resolve(
         supabase.from("profiles").select("*").eq("id", uid).maybeSingle(),
       ),
       8000,
     );
-
-    if (!result) {
-      // Network blip — keep whatever profile we already have; the local
-      // store is still usable from cached IDB data.
-      return;
-    }
-
+    if (!result) return; // keep cached profile
     const { data, error } = result as { data: Profile | null; error: unknown };
-    if (error) {
-      console.warn("[auth] profile fetch failed:", error);
-      return;
-    }
-    if (data) {
-      setProfile(data);
-      // Boot the local store (no-op if already booted for same user).
-      void bootStore(data.username);
-    }
+    if (error || !data) return;
+    setProfile(data);
+    writeCachedProfile(data);
+    void bootStore(data.username);
   };
+
 
   useEffect(() => {
     void loadProfile();
