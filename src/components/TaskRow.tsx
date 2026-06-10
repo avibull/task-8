@@ -53,31 +53,38 @@ export function TaskRow({
       <div
         onClick={onExpand}
         className={cn(
-          "flex items-center gap-2 px-3 py-2.5 active:bg-panel-2",
+          "px-3 py-2.5 active:bg-panel-2",
           task.completed && "opacity-50"
         )}
       >
-        <button
-          onClick={(e) => { e.stopPropagation(); onToggleComplete(); }}
-          className={cn(
-            "flex h-5 w-5 shrink-0 items-center justify-center rounded-[3px] border",
-            task.completed ? "border-accent-lime bg-accent-lime" : "border-dim"
-          )}
-        >
-          {task.completed && <Check size={12} className="text-background" />}
-        </button>
-        <PriorityBadge p={task.priority} />
-        <div className={cn("min-w-0 flex-1 text-sm", task.completed && "line-through")}>
-          {task.text}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={(e) => { e.stopPropagation(); onToggleComplete(); }}
+            className={cn(
+              "flex h-5 w-5 shrink-0 items-center justify-center rounded-[3px] border",
+              task.completed ? "border-accent-lime bg-accent-lime" : "border-dim"
+            )}
+          >
+            {task.completed && <Check size={12} className="text-background" />}
+          </button>
+          <PriorityBadge p={task.priority} />
+          <div className={cn("min-w-0 flex-1 truncate text-sm", task.completed && "line-through")}>
+            {task.text}
+          </div>
         </div>
-        <div className="mono flex shrink-0 flex-wrap items-center justify-end gap-x-1.5 gap-y-0.5 text-[10px]">
-          {task.assigned_to.slice(0, 3).map((u) => (
-            <UserMention key={`a:${u}`} username={u} task={task} className="text-[10px] text-accent-lime underline decoration-dotted underline-offset-2" />
-          ))}
-          {task.tags.slice(0, 3).map((t) => (
-            <span key={`t:${t}`} className="text-dim">#{t}</span>
-          ))}
-        </div>
+        {(task.assigned_to.length > 0 || task.tags.length > 0) && (
+          <div
+            className="mono mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px]"
+            style={{ paddingLeft: "calc(1.25rem + 0.5rem + 1.75rem + 0.5rem)" }}
+          >
+            {task.assigned_to.slice(0, 5).map((u) => (
+              <UserMention key={`a:${u}`} username={u} task={task} className="text-[10px] text-accent-lime underline decoration-dotted underline-offset-2" />
+            ))}
+            {task.tags.slice(0, 5).map((t) => (
+              <span key={`t:${t}`} className="text-dim">#{t}</span>
+            ))}
+          </div>
+        )}
       </div>
 
       {expanded && (
