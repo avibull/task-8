@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { X, Plus, Check, Trash2, Send, BellRing } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { fetchActivity, type ActivityLogRow } from "@/lib/activity";
