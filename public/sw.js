@@ -1,4 +1,4 @@
-const CACHE_NAME = 'turbotask-v1';
+const CACHE_NAME = 'task8-v1';
 const SHELL_ASSETS = [
   '/',
   '/manifest.json',

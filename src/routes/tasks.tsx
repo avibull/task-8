@@ -171,7 +171,7 @@ function TasksPage() {
       <div className="flex min-h-screen flex-col bg-background">
         <header className="flex items-center justify-between border-b border-border bg-panel px-4 py-3">
           <h1 className="mono text-base font-bold">
-            turbo<span className="text-accent-lime">·</span>task
+            task<span className="text-accent-lime">·</span>8
           </h1>
           <div className="flex items-center gap-3">
             <Link to="/settings" className="text-dim hover:text-foreground">
