@@ -95,9 +95,20 @@ function SettingsPage() {
       </SheetWrap>
 
       {adminOpen && (
-        <div className="fixed inset-0 z-50 animate-in fade-in slide-in-from-right-4 bg-background">
+        <div className="fixed inset-0 z-50 slide-in-right bg-background">
           <AdminPanel onClose={() => setAdminOpen(false)} />
         </div>
+      )}
+
+      {activityOpen && (
+        <ActivityLog
+          onClose={() => setActivityOpen(false)}
+          onOpenTask={(id) => {
+            if (typeof window !== "undefined") window.sessionStorage.setItem("open_task_id", id);
+            setActivityOpen(false);
+            nav({ to: "/tasks" });
+          }}
+        />
       )}
     </div>
   );
