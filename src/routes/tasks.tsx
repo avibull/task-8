@@ -45,6 +45,8 @@ function applySort(list: Task[], sort: SortKey): Task[] {
         return a.text.localeCompare(b.text);
       case "za":
         return b.text.localeCompare(a.text);
+      default:
+        return 0;
     }
   };
   return [...incomplete.sort(cmp), ...done.sort(cmp)];
