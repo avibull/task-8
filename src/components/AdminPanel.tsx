@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Pencil, Plus, Trash2, X } from "lucide-react";
+import { ArrowLeft, Key, Pencil, Plus, Power, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { listUsers, createUser, updateUser, deleteUser } from "@/lib/admin.functions";
@@ -52,6 +52,28 @@ export function AdminPanel({ onClose }: Props) {
     refresh();
   };
 
+  const handleResetPin = async (u: Profile) => {
+    const pin = window.prompt(`New PIN for ${u.name} (4-6 digits):`, "");
+    if (!pin) return;
+    const clean = pin.replace(/\D/g, "");
+    if (clean.length < 4 || clean.length > 6) return toast.error("PIN must be 4–6 digits");
+    setBusy(true);
+    const res = await updateFn({ data: { id: u.id, new_pin: clean } });
+    setBusy(false);
+    if (!res.ok) return toast.error(res.message);
+    toast.success("PIN reset");
+  };
+
+  const handleToggleActive = async (u: Profile) => {
+    if (u.id === profile.id) return toast.error("Can't deactivate yourself");
+    setBusy(true);
+    const res = await updateFn({ data: { id: u.id, is_active: !u.is_active } });
+    setBusy(false);
+    if (!res.ok) return toast.error(res.message);
+    toast.success(u.is_active ? "Deactivated" : "Activated");
+    refresh();
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="flex items-center justify-between border-b border-border bg-panel px-4 py-3">
@@ -72,7 +94,52 @@ export function AdminPanel({ onClose }: Props) {
       </header>
 
       <div className="p-3">
-        <div className="overflow-hidden rounded-[3px] border border-border bg-panel">
+        {/* Mobile: card layout */}
+        <div className="space-y-2 sm:hidden">
+          {users.length === 0 && (
+            <div className="mono rounded-[3px] border border-border bg-panel px-3 py-6 text-center text-dim">no users</div>
+          )}
+          {users.map((u) => (
+            <div key={u.id} className={`rounded-[3px] border border-border bg-panel p-3 ${!u.is_active ? "opacity-60" : ""}`}>
+              <div className="flex items-start justify-between gap-2">
+                <div className="text-sm font-semibold">{u.name}</div>
+                <div className="mono text-[10px] text-dim">{u.employee_id}</div>
+              </div>
+              <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                <span className="mono text-[11px] text-accent-lime">@{u.username}</span>
+                {u.is_admin && <span className="mono rounded-[3px] border border-accent-lime bg-accent-lime/15 px-1.5 py-0.5 text-[9px] uppercase text-accent-lime">admin</span>}
+                {u.can_edit_tags && <span className="mono rounded-[3px] border border-[#3b82f6] bg-[#3b82f6]/15 px-1.5 py-0.5 text-[9px] uppercase text-[#3b82f6]">tags</span>}
+                {!u.is_active && <span className="mono rounded-[3px] border border-[color:var(--p1)] bg-[color:var(--p1)]/15 px-1.5 py-0.5 text-[9px] uppercase text-[color:var(--p1)]">inactive</span>}
+              </div>
+              <div className="mono mt-1 text-[11px] text-dim">{u.phone || "—"}</div>
+              <div className="mt-3 grid grid-cols-3 gap-1.5 border-t border-border pt-2">
+                <button
+                  onClick={() => setEditing(u)}
+                  className="mono flex min-h-[44px] items-center justify-center gap-1 rounded-[3px] border border-border bg-panel-2 px-2 text-[10px] uppercase text-foreground active:bg-panel"
+                >
+                  <Pencil size={12} /> Edit
+                </button>
+                <button
+                  onClick={() => handleResetPin(u)}
+                  disabled={busy}
+                  className="mono flex min-h-[44px] items-center justify-center gap-1 rounded-[3px] border border-border bg-panel-2 px-2 text-[10px] uppercase text-foreground active:bg-panel disabled:opacity-40"
+                >
+                  <Key size={12} /> Reset PIN
+                </button>
+                <button
+                  onClick={() => handleToggleActive(u)}
+                  disabled={busy || u.id === profile.id}
+                  className="mono flex min-h-[44px] items-center justify-center gap-1 rounded-[3px] border border-[color:var(--p1)] bg-panel-2 px-2 text-[10px] uppercase text-[color:var(--p1)] active:bg-panel disabled:opacity-40"
+                >
+                  <Power size={12} /> {u.is_active ? "Deactivate" : "Activate"}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop: table */}
+        <div className="hidden overflow-hidden rounded-[3px] border border-border bg-panel sm:block">
           <table className="mono w-full text-left text-xs">
             <thead className="bg-panel-2 text-[10px] uppercase tracking-wider text-dim">
               <tr>
@@ -99,12 +166,19 @@ export function AdminPanel({ onClose }: Props) {
                   <td className="px-3 py-2">{u.is_active ? "yes" : "no"}</td>
                   <td className="px-3 py-2">
                     <div className="flex justify-end gap-1">
-                      <button onClick={() => setEditing(u)} className="rounded-[3px] border border-border p-1.5 text-dim hover:text-foreground">
+                      <button onClick={() => setEditing(u)} title="Edit" className="rounded-[3px] border border-border p-1.5 text-dim hover:text-foreground">
                         <Pencil size={12} />
+                      </button>
+                      <button onClick={() => handleResetPin(u)} disabled={busy} title="Reset PIN" className="rounded-[3px] border border-border p-1.5 text-dim hover:text-foreground disabled:opacity-30">
+                        <Key size={12} />
+                      </button>
+                      <button onClick={() => handleToggleActive(u)} disabled={busy || u.id === profile.id} title={u.is_active ? "Deactivate" : "Activate"} className="rounded-[3px] border border-border p-1.5 text-dim hover:text-[color:var(--p1)] disabled:opacity-30">
+                        <Power size={12} />
                       </button>
                       <button
                         onClick={() => handleDelete(u)}
                         disabled={busy || u.id === profile.id}
+                        title="Delete"
                         className="rounded-[3px] border border-border p-1.5 text-dim hover:text-[color:var(--p1)] disabled:opacity-30"
                       >
                         <Trash2 size={12} />
@@ -120,6 +194,7 @@ export function AdminPanel({ onClose }: Props) {
           </table>
         </div>
       </div>
+
 
       {showAdd && (
         <UserModal
