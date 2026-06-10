@@ -22,6 +22,8 @@ import { AlertsPanel } from "@/components/AlertsPanel";
 import { SortControl, type SortKey } from "@/components/SortControl";
 import { MentionProvider } from "@/contexts/MentionContext";
 import { TaskListSkeleton } from "@/components/TaskListSkeleton";
+import { SyncStatus } from "@/components/SyncStatus";
+
 import type { Alert, Priority, Task } from "@/lib/types";
 
 const PRIO_RANK: Record<Priority, number> = { P1: 0, P2: 1, P3: 2, Daily: 3, None: 4 };
