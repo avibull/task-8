@@ -52,6 +52,15 @@ function TasksPage() {
   const [sheetTask, setSheetTask] = useState<Task | null>(null);
   const [sheetOverride, setSheetOverride] = useState<string[] | undefined>(undefined);
   const [alertsOpen, setAlertsOpen] = useState(false);
+  const [sort, setSort] = useState<SortKey>(() => {
+    if (typeof window === "undefined") return "priority_desc";
+    const v = window.localStorage.getItem(SORT_STORAGE_KEY);
+    return (v as SortKey) || "priority_desc";
+  });
+
+  useEffect(() => {
+    if (typeof window !== "undefined") window.localStorage.setItem(SORT_STORAGE_KEY, sort);
+  }, [sort]);
 
   useEffect(() => {
     if (!loading && !profile) nav({ to: "/login", replace: true });
@@ -72,8 +81,8 @@ function TasksPage() {
       );
     }
     if (tagFilter) list = list.filter((t) => t.tags.includes(tagFilter));
-    return list;
-  }, [tasks, scope, tagFilter, me]);
+    return applySort(list, sort);
+  }, [tasks, scope, tagFilter, me, sort]);
 
   const active = filtered.filter((t) => !t.completed);
   const done = filtered.filter((t) => t.completed);
