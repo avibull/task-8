@@ -16,43 +16,69 @@ const Ctx = createContext<AuthCtx>({
   refresh: async () => {},
 });
 
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T | null> {
+  return new Promise((resolve) => {
+    const t = setTimeout(() => resolve(null), ms);
+    p.then((v) => { clearTimeout(t); resolve(v); })
+     .catch(() => { clearTimeout(t); resolve(null); });
+  });
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Two-phase loader:
+  //  1. Read the session synchronously from local storage; end the global
+  //     loading state immediately so the UI never hangs on flaky mobile networks.
+  //  2. Best-effort profile fetch in the background, with a timeout.
   const loadProfile = async () => {
+    let userId: string | null = null;
     try {
-      // Use getSession (reads from local storage, no network round-trip)
-      // so the loading state always resolves even on flaky mobile networks.
-      const { data: { session } } = await supabase.auth.getSession();
-      const user = session?.user ?? null;
-      if (!user) {
-        setProfile(null);
-        return;
-      }
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .maybeSingle();
-      if (error) {
-        console.warn("[auth] profile fetch failed:", error.message);
-        setProfile(null);
-        return;
-      }
-      setProfile(data as Profile | null);
-    } catch (err) {
-      console.warn("[auth] loadProfile failed:", err);
-      setProfile(null);
-    } finally {
-      setLoading(false);
+      const { data } = await supabase.auth.getSession();
+      userId = data.session?.user?.id ?? null;
+    } catch {
+      userId = null;
     }
+
+    if (!userId) {
+      setProfile(null);
+      setLoading(false);
+      return;
+    }
+
+    // End loading immediately so route guards can run.
+    setLoading(false);
+
+    const result = await withTimeout(
+      supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
+      6000,
+    );
+
+    if (!result) {
+      // Timed out or transient error — recover by clearing the bad session
+      // so the login screen appears instead of hanging forever.
+      console.warn("[auth] profile fetch timed out; signing out");
+      try { await supabase.auth.signOut(); } catch {}
+      setProfile(null);
+      return;
+    }
+
+    const { data, error } = result as { data: Profile | null; error: unknown };
+    if (error) {
+      console.warn("[auth] profile fetch failed:", error);
+      setProfile(null);
+      return;
+    }
+    setProfile(data ?? null);
   };
 
   useEffect(() => {
     loadProfile();
-    const { data: sub } = supabase.auth.onAuthStateChange(() => {
-      loadProfile();
+    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") {
+        loadProfile();
+      }
     });
     return () => sub.subscription.unsubscribe();
   }, []);

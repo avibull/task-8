@@ -171,7 +171,6 @@ function TasksPage() {
     setTagFilters((s) => (s.includes(name) ? s.filter((x) => x !== name) : [...s, name]));
 
   const rowProps = (t: Task) => ({
-    key: t.id,
     task: t,
     alerts,
     expanded: expandedId === t.id,
@@ -252,10 +251,10 @@ function TasksPage() {
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
               <SortableContext items={allIds} strategy={verticalListSortingStrategy}>
                 <SectionHeader label="Active" count={active.length} />
-                {active.map((t) => (<SortableTaskRow {...rowProps(t)} />))}
+                {active.map((t) => (<SortableTaskRow key={t.id} {...rowProps(t)} />))}
 
                 <SectionHeader label="Done" count={done.length} />
-                {done.map((t) => (<SortableTaskRow {...rowProps(t)} />))}
+                {done.map((t) => (<SortableTaskRow key={t.id} {...rowProps(t)} />))}
               </SortableContext>
             </DndContext>
           )}
