@@ -298,3 +298,19 @@ function SectionHeader({ label, count }: { label: string; count: number }) {
     </h2>
   );
 }
+
+function EmptyTasks({ scope, tagFilters }: { scope: Scope; tagFilters: string[] }) {
+  let msg = "No tasks yet. Add your first one above.";
+  if (tagFilters.length > 0) {
+    msg = `No tasks tagged #${tagFilters[0]}.`;
+  } else if (scope === "mine") {
+    msg = "Nothing assigned to you. Add a task above or check All.";
+  } else if (scope === "delegated") {
+    msg = "No tasks assigned to others yet.";
+  }
+  return (
+    <div className="mono px-8 py-16 text-center text-[11px] uppercase tracking-wider text-[color:var(--color-text-faint)]">
+      {msg}
+    </div>
+  );
+}
