@@ -10,7 +10,26 @@ import { AdminPanel } from "@/components/AdminPanel";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/settings")({ component: SettingsPage });
+export const Route = createFileRoute("/settings")({
+  head: () => ({
+    meta: [
+      { title: "Settings — task8" },
+      {
+        name: "description",
+        content:
+          "Manage your task8 account: change PIN, switch theme, manage tags, and administer users.",
+      },
+      { property: "og:title", content: "Settings — task8" },
+      {
+        property: "og:description",
+        content: "Manage your task8 account and team settings.",
+      },
+      { property: "og:url", content: "https://turbo-task.lovable.app/settings" },
+      { name: "robots", content: "noindex" },
+    ],
+  }),
+  component: SettingsPage,
+});
 
 type Sheet = null | "pin" | "display" | "tags";
 
@@ -32,7 +51,7 @@ function SettingsPage() {
   return (
     <div className="min-h-screen bg-background">
       <header className="flex items-center gap-3 border-b border-border bg-panel px-4 py-3">
-        <Link to="/tasks" className="text-dim"><ArrowLeft size={18} /></Link>
+        <Link to="/tasks" aria-label="Back to tasks" className="text-dim"><ArrowLeft size={18} /></Link>
         <h1 className="mono text-sm uppercase tracking-wider">settings</h1>
       </header>
 
@@ -106,7 +125,7 @@ function SheetWrap({
         >
           <div className="flex items-center justify-between border-b border-border px-4 py-2">
             <span className="mono text-[10px] uppercase tracking-wider text-dim">{title}</span>
-            <button onClick={onClose} className="text-dim"><X size={16} /></button>
+            <button onClick={onClose} aria-label="Close" className="text-dim"><X size={16} /></button>
           </div>
           <div className="flex-1 overflow-hidden">{children}</div>
         </DrawerContent>
@@ -206,7 +225,7 @@ function TagManager() {
                   <button onClick={() => setConfirmId(null)} className="mono rounded-[3px] border border-border px-2 py-1 text-[10px] uppercase text-dim">Cancel</button>
                 </div>
               ) : (
-                <button onClick={() => setConfirmId(t.id)} className="text-[color:var(--p1)]"><Trash2 size={14} /></button>
+                <button onClick={() => setConfirmId(t.id)} aria-label={`Delete tag ${t.name}`} className="text-[color:var(--p1)]"><Trash2 size={14} /></button>
               )}
             </div>
           ))}

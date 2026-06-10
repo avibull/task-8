@@ -52,7 +52,26 @@ function applySort(list: Task[], sort: SortKey): Task[] {
   return [...incomplete.sort(cmp), ...done.sort(cmp)];
 }
 
-export const Route = createFileRoute("/tasks")({ component: TasksPage });
+export const Route = createFileRoute("/tasks")({
+  head: () => ({
+    meta: [
+      { title: "Tasks — task8" },
+      {
+        name: "description",
+        content:
+          "Your collaborative task inbox in task8. Capture, assign, tag, prioritize, and ping teammates in real time.",
+      },
+      { property: "og:title", content: "Tasks — task8" },
+      {
+        property: "og:description",
+        content: "Collaborative team task management — assign, tag, and ping in real time.",
+      },
+      { property: "og:url", content: "https://turbo-task.lovable.app/tasks" },
+      { name: "robots", content: "noindex" },
+    ],
+  }),
+  component: TasksPage,
+});
 
 function TasksPage() {
   const nav = useNavigate();
@@ -170,11 +189,12 @@ function TasksPage() {
     >
       <div className="flex min-h-screen flex-col bg-background">
         <header className="flex items-center justify-between border-b border-border bg-panel px-4 py-3">
-          <h1 className="mono text-base font-bold">
+          <h1 className="sr-only">Tasks — Collaborative management</h1>
+          <div className="mono text-base font-bold" aria-hidden="true">
             task<span className="text-accent-lime">·</span>8
-          </h1>
+          </div>
           <div className="flex items-center gap-3">
-            <Link to="/settings" className="text-dim hover:text-foreground">
+            <Link to="/settings" aria-label="Settings" className="text-dim hover:text-foreground">
               <SettingsIcon size={18} />
             </Link>
             <button
@@ -245,9 +265,9 @@ function TasksPage() {
 
 function SectionHeader({ label, count }: { label: string; count: number }) {
   return (
-    <div className="mono flex items-center justify-between border-b border-border bg-background px-3 py-1.5 text-[10px] uppercase tracking-wider text-dim">
+    <h2 className="mono flex items-center justify-between border-b border-border bg-background px-3 py-1.5 text-[10px] font-normal uppercase tracking-wider text-dim">
       <span>▸ {label}</span>
       <span>{count}</span>
-    </div>
+    </h2>
   );
 }

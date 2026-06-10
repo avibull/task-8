@@ -6,6 +6,23 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/login")({
+  head: () => ({
+    meta: [
+      { title: "Login — task8" },
+      {
+        name: "description",
+        content:
+          "Sign in to task8, the ultra-fast multi-user task management app for teams.",
+      },
+      { property: "og:title", content: "Login — task8" },
+      {
+        property: "og:description",
+        content: "Sign in to task8 and manage your team's tasks.",
+      },
+      { property: "og:url", content: "https://turbo-task.lovable.app/login" },
+    ],
+    links: [{ rel: "canonical", href: "https://turbo-task.lovable.app/login" }],
+  }),
   component: LoginPage,
 });
 
@@ -74,10 +91,11 @@ function LoginPage() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-6">
-      <div className="mb-10">
-        <h1 className="mono text-3xl font-bold tracking-tight text-foreground">
+      <h1 className="sr-only">Login to task·8</h1>
+      <div className="mb-10" aria-hidden="true">
+        <div className="mono text-3xl font-bold tracking-tight text-foreground">
           task<span className="text-accent-lime">·</span>8
-        </h1>
+        </div>
       </div>
 
       <form onSubmit={submit} className="w-full max-w-xs space-y-3">
