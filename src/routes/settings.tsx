@@ -39,6 +39,7 @@ function SettingsPage() {
   const { profile, loading, signOut } = useAuth();
   const [sheet, setSheet] = useState<Sheet>(null);
   const [adminOpen, setAdminOpen] = useState(false);
+  const [activityOpen, setActivityOpen] = useState(false);
 
   useEffect(() => {
     if (!loading && !profile) nav({ to: "/login", replace: true });
