@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Task } from "@/lib/types";
 import { useAuth } from "@/contexts/AuthContext";
+import { logActivity } from "@/lib/activity";
 
 export function useTasks() {
   const { profile } = useAuth();
