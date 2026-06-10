@@ -73,6 +73,7 @@ function SettingsPage() {
           <Row label="Display" onClick={() => setSheet("display")} />
           {showTags && <Row label="Tag management" onClick={() => setSheet("tags")} />}
           {showAdmin && <Row label="Manage users" onClick={() => setAdminOpen(true)} />}
+          <Row label="Activity" onClick={() => setActivityOpen(true)} />
         </div>
 
         <button
