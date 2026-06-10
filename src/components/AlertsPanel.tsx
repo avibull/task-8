@@ -56,7 +56,9 @@ export function AlertsPanel({ alerts, tasks, onClose, onAck, onRepingAlert }: Pr
 
       <div className="flex-1 overflow-y-auto">
         {list.length === 0 && (
-          <div className="mono p-8 text-center text-xs uppercase tracking-wider text-dim">No alerts</div>
+          <div className="mono p-10 text-center text-[11px] uppercase tracking-wider text-[color:var(--color-text-faint)]">
+            {tab === "received" ? "No alerts received." : "No alerts sent."}
+          </div>
         )}
         {list.map((a) => {
           const task = a.task_id ? taskMap.get(a.task_id) : null;
