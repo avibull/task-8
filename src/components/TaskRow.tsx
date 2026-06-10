@@ -3,7 +3,7 @@ import { Check } from "lucide-react";
 import type { Alert, Priority, Task } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { PriorityBadge } from "./PriorityBadge";
-import { formatDistanceToNow } from "date-fns";
+
 import { UserPicker } from "./UserPicker";
 import { TagPicker } from "./TagPicker";
 import { UserMention } from "./UserMention";
