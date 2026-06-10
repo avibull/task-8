@@ -20,8 +20,28 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { name: "theme-color", content: "#0d0e10" },
-      { title: "task8" },
-      { name: "description", content: "Dense, ultra-fast multi-user task management." },
+      { title: "task8 — Ultra-fast Multi-user Task Management" },
+      {
+        name: "description",
+        content:
+          "Manage tasks with speed and precision using task8, the ultra-fast multi-user task management app built for teams.",
+      },
+      { property: "og:type", content: "website" },
+      { property: "og:site_name", content: "task8" },
+      { property: "og:title", content: "task8 — Ultra-fast Multi-user Task Management" },
+      {
+        property: "og:description",
+        content:
+          "Capture, assign, tag, and ping tasks in real time. task8 is the ultra-fast multi-user task management app built for teams.",
+      },
+      { property: "og:url", content: "https://turbo-task.lovable.app/" },
+      { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: "task8 — Ultra-fast Multi-user Task Management" },
+      {
+        name: "twitter:description",
+        content:
+          "Capture, assign, tag, and ping tasks in real time. Built for teams.",
+      },
       { name: "mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
@@ -37,6 +57,21 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap",
+      },
+    ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "SoftwareApplication",
+          name: "task8",
+          applicationCategory: "BusinessApplication",
+          operatingSystem: "Web",
+          description:
+            "Ultra-fast multi-user task management app for teams. Capture, assign, tag, and ping tasks in real time.",
+          url: "https://turbo-task.lovable.app/",
+        }),
       },
     ],
   }),
