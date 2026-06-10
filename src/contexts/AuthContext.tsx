@@ -51,7 +51,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false);
 
     const result = await withTimeout(
-      supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
+      Promise.resolve(
+        supabase.from("profiles").select("*").eq("id", userId).maybeSingle()
+      ),
       6000,
     );
 
