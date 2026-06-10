@@ -106,10 +106,19 @@ export function useAlerts() {
 
   const acknowledge = async (id: string) => {
     stopRepeat(id);
+    const a = alerts.find((x) => x.id === id);
     await supabase
       .from("alerts")
       .update({ status: "acknowledged", ack_at: new Date().toISOString() })
       .eq("id", id);
+    if (a) {
+      logActivity({
+        event_type: "alert_acknowledged",
+        task_id: a.task_id ?? null,
+        alert_id: a.id,
+        meta: { sender: a.sender, alert_type: a.type },
+      });
+    }
   };
 
   const send = async (params: {
@@ -130,6 +139,13 @@ export function useAlerts() {
       status: params.trigger === "scheduled" ? ("scheduled" as const) : ("pending" as const),
     }));
     await supabase.from("alerts").insert(rows);
+    for (const r of params.recipients) {
+      logActivity({
+        event_type: "alert_sent",
+        task_id: params.task_id,
+        meta: { recipient: r, alert_type: params.type },
+      });
+    }
     await refetch();
   };
 
