@@ -3,8 +3,10 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Key, Pencil, Plus, Power, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { listUsers, createUser, updateUser, deleteUser } from "@/lib/admin.functions";
+import { refreshProfiles } from "@/lib/profilesCache";
 import type { Profile } from "@/lib/types";
 import { canManageUsers } from "@/lib/types";
 
@@ -12,6 +14,8 @@ interface Props {
   /** If provided, the back arrow calls this instead of linking to /settings. */
   onClose?: () => void;
 }
+
+type LoadStatus = "idle" | "loading" | "ready" | "error";
 
 export function AdminPanel({ onClose }: Props) {
   const { profile } = useAuth();
@@ -21,16 +25,31 @@ export function AdminPanel({ onClose }: Props) {
   const deleteFn = useServerFn(deleteUser);
 
   const [users, setUsers] = useState<Profile[]>([]);
+  const [status, setStatus] = useState<LoadStatus>("idle");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [editing, setEditing] = useState<Profile | null>(null);
 
   const refresh = async () => {
+    setStatus("loading");
+    setErrorMsg(null);
+    // If the session bearer hasn't been attached yet (race on hard refresh),
+    // wait briefly for the session before calling the protected server fn.
     try {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) {
+        // brief grace period for AuthContext to hydrate
+        await new Promise((r) => setTimeout(r, 250));
+      }
       const res = await listFn({ data: undefined as never });
       setUsers((res.users ?? []) as Profile[]);
+      setStatus("ready");
     } catch (e) {
-      toast.error((e as Error).message);
+      const msg = (e as Error).message || "Failed to load users";
+      setErrorMsg(msg);
+      setStatus("error");
+      toast.error(msg);
     }
   };
 
@@ -50,6 +69,7 @@ export function AdminPanel({ onClose }: Props) {
     if (!res.ok) return toast.error(res.message);
     toast.success("User deleted");
     refresh();
+    void refreshProfiles();
   };
 
   const handleResetPin = async (u: Profile) => {
@@ -72,6 +92,7 @@ export function AdminPanel({ onClose }: Props) {
     if (!res.ok) return toast.error(res.message);
     toast.success(u.is_active ? "Deactivated" : "Activated");
     refresh();
+    void refreshProfiles();
   };
 
   return (
@@ -97,7 +118,7 @@ export function AdminPanel({ onClose }: Props) {
         {/* Mobile: card layout */}
         <div className="space-y-2 sm:hidden">
           {users.length === 0 && (
-            <div className="mono rounded-[3px] border border-border bg-panel px-3 py-6 text-center text-dim">no users</div>
+            <EmptyState status={status} error={errorMsg} onRetry={refresh} />
           )}
           {users.map((u) => (
             <div key={u.id} className={`rounded-[3px] border border-border bg-panel p-3 ${!u.is_active ? "opacity-60" : ""}`}>
@@ -188,7 +209,7 @@ export function AdminPanel({ onClose }: Props) {
                 </tr>
               ))}
               {users.length === 0 && (
-                <tr><td colSpan={6} className="px-3 py-6 text-center text-dim">no users</td></tr>
+                <tr><td colSpan={6} className="p-0"><EmptyState status={status} error={errorMsg} onRetry={refresh} /></td></tr>
               )}
             </tbody>
           </table>
@@ -204,6 +225,7 @@ export function AdminPanel({ onClose }: Props) {
             if (!res.ok) { toast.error(res.message); return false; }
             toast.success("User created");
             await refresh();
+            void refreshProfiles();
             return true;
           }}
         />
@@ -225,11 +247,39 @@ export function AdminPanel({ onClose }: Props) {
             if (!res.ok) { toast.error(res.message); return false; }
             toast.success("User updated");
             await refresh();
+            void refreshProfiles();
             return true;
           }}
         />
       )}
     </div>
+  );
+}
+
+function EmptyState({
+  status, error, onRetry,
+}: { status: LoadStatus; error: string | null; onRetry: () => void }) {
+  if (status === "loading" || status === "idle") {
+    return (
+      <div className="mono rounded-[3px] border border-border bg-panel px-3 py-6 text-center text-dim">
+        Loading users...
+      </div>
+    );
+  }
+  if (status === "error") {
+    return (
+      <div className="space-y-2 rounded-[3px] border border-[color:var(--p1)] bg-panel px-3 py-4 text-center">
+        <div className="mono text-xs text-[color:var(--p1)]">Failed to load users</div>
+        {error && <div className="mono break-words text-[10px] text-dim">{error}</div>}
+        <button
+          onClick={onRetry}
+          className="mono rounded-[3px] border border-border bg-panel-2 px-3 py-1.5 text-[10px] uppercase"
+        >Retry</button>
+      </div>
+    );
+  }
+  return (
+    <div className="mono rounded-[3px] border border-border bg-panel px-3 py-6 text-center text-dim">no users</div>
   );
 }
 
