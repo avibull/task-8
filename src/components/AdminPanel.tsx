@@ -3,8 +3,10 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Key, Pencil, Plus, Power, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { listUsers, createUser, updateUser, deleteUser } from "@/lib/admin.functions";
+import { refreshProfiles } from "@/lib/profilesCache";
 import type { Profile } from "@/lib/types";
 import { canManageUsers } from "@/lib/types";
 
@@ -12,6 +14,8 @@ interface Props {
   /** If provided, the back arrow calls this instead of linking to /settings. */
   onClose?: () => void;
 }
+
+type LoadStatus = "idle" | "loading" | "ready" | "error";
 
 export function AdminPanel({ onClose }: Props) {
   const { profile } = useAuth();
@@ -21,16 +25,31 @@ export function AdminPanel({ onClose }: Props) {
   const deleteFn = useServerFn(deleteUser);
 
   const [users, setUsers] = useState<Profile[]>([]);
+  const [status, setStatus] = useState<LoadStatus>("idle");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [editing, setEditing] = useState<Profile | null>(null);
 
   const refresh = async () => {
+    setStatus("loading");
+    setErrorMsg(null);
+    // If the session bearer hasn't been attached yet (race on hard refresh),
+    // wait briefly for the session before calling the protected server fn.
     try {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) {
+        // brief grace period for AuthContext to hydrate
+        await new Promise((r) => setTimeout(r, 250));
+      }
       const res = await listFn({ data: undefined as never });
       setUsers((res.users ?? []) as Profile[]);
+      setStatus("ready");
     } catch (e) {
-      toast.error((e as Error).message);
+      const msg = (e as Error).message || "Failed to load users";
+      setErrorMsg(msg);
+      setStatus("error");
+      toast.error(msg);
     }
   };
 
@@ -50,6 +69,7 @@ export function AdminPanel({ onClose }: Props) {
     if (!res.ok) return toast.error(res.message);
     toast.success("User deleted");
     refresh();
+    void refreshProfiles();
   };
 
   const handleResetPin = async (u: Profile) => {
