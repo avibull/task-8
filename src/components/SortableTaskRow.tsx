@@ -23,19 +23,28 @@ export function SortableTaskRow(props: TaskRowProps) {
     <div
       ref={setNodeRef}
       style={style}
-      {...attributes}
-      {...listeners}
       className={cn(
-        "relative touch-manipulation",
+        "relative",
         isDragging && "scale-[1.01] shadow-lg shadow-black/40 bg-panel-2"
       )}
     >
-      {isDragging && (
-        <div className="pointer-events-none absolute left-0 top-1/2 z-10 -translate-y-1/2 pl-1 text-accent-lime">
-          <GripVertical size={14} />
-        </div>
-      )}
-      <TaskRow {...props} />
+      {/* Drag handle — only this element owns the dnd pointer gesture.
+          The rest of the row keeps native click semantics so tap-to-expand
+          fires immediately and is never swallowed by dnd-kit. */}
+      <button
+        type="button"
+        aria-label="Drag to reorder"
+        {...attributes}
+        {...listeners}
+        className="absolute left-0 top-0 z-10 flex h-full w-6 items-center justify-center text-dim/60 active:text-accent-lime"
+        style={{ touchAction: "none" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <GripVertical size={12} />
+      </button>
+      <div className="pl-5">
+        <TaskRow {...props} />
+      </div>
     </div>
   );
 }
