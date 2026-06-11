@@ -225,6 +225,7 @@ export function AdminPanel({ onClose }: Props) {
             if (!res.ok) { toast.error(res.message); return false; }
             toast.success("User created");
             await refresh();
+            void refreshProfiles();
             return true;
           }}
         />
@@ -246,11 +247,39 @@ export function AdminPanel({ onClose }: Props) {
             if (!res.ok) { toast.error(res.message); return false; }
             toast.success("User updated");
             await refresh();
+            void refreshProfiles();
             return true;
           }}
         />
       )}
     </div>
+  );
+}
+
+function EmptyState({
+  status, error, onRetry,
+}: { status: LoadStatus; error: string | null; onRetry: () => void }) {
+  if (status === "loading" || status === "idle") {
+    return (
+      <div className="mono rounded-[3px] border border-border bg-panel px-3 py-6 text-center text-dim">
+        Loading users...
+      </div>
+    );
+  }
+  if (status === "error") {
+    return (
+      <div className="space-y-2 rounded-[3px] border border-[color:var(--p1)] bg-panel px-3 py-4 text-center">
+        <div className="mono text-xs text-[color:var(--p1)]">Failed to load users</div>
+        {error && <div className="mono break-words text-[10px] text-dim">{error}</div>}
+        <button
+          onClick={onRetry}
+          className="mono rounded-[3px] border border-border bg-panel-2 px-3 py-1.5 text-[10px] uppercase"
+        >Retry</button>
+      </div>
+    );
+  }
+  return (
+    <div className="mono rounded-[3px] border border-border bg-panel px-3 py-6 text-center text-dim">no users</div>
   );
 }
 
