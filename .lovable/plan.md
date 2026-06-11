@@ -1,15 +1,43 @@
-I found two likely causes for the installed phone app staying on “loading…”:
+## Root cause
 
-1. The installed app can still be controlled by the existing `/sw.js` app-shell cache, so old JavaScript can keep running even after fixes are deployed.
-2. Auth startup still waits on the profile database request before ending the app-level loading state; if that request is blocked, slow, or fails oddly on mobile, `/tasks` can remain on the loading screen.
+Every task row in `SortableTaskRow.tsx` spreads dnd-kit's `{...attributes} {...listeners}` on the **entire row wrapper**, and `tasks.tsx` configures both `PointerSensor` and `TouchSensor` with:
 
-Plan:
+```ts
+activationConstraint: { delay: 500, tolerance: 6 }
+```
 
-- Replace the current app-shell service worker with a one-release cleanup worker at the same `/sw.js` path. This keeps the installable app metadata, but removes the stale app cache/control layer so returning installed apps pick up fresh code.
-- Disable future app-shell service worker registration while leaving the manifest/icons intact, because the app only needs installability right now, not offline caching.
-- Make auth startup two-phase: restore the local session quickly, end `loading` immediately, then fetch the profile with a short timeout and safe fallback.
-- Update route behavior so unauthenticated users are sent to login after auth readiness, while signed-in users don’t get stuck forever if profile fetch is slow.
-- Add a tiny recovery path for invalid/stale mobile sessions: clear bad auth state and show the login screen instead of hanging.
-- Fix the React `key` warning in the task list while touching the loading path.
+This is "press-and-hold to drag" mode. With it:
 
-After this is published, you should first fully close and reopen the installed app. Reinstall should only be needed if the phone OS has cached old manifest fields/icon labels, not for this loading issue.
+1. When you press a row, dnd-kit captures the pointer and **waits 500ms** to decide tap vs drag. The browser's `click` only fires after the pointer is released AND the delay was not promoted to a drag — so any tap shorter than the delay still feels laggy, and any tap that moves >6px during the wait gets cancelled outright (which on a touch device happens constantly from micro-scroll/finger jitter, so the tap silently does nothing).
+2. The listeners wrap the **expanded drawer too**, so when one drawer is open and you tap another row, the pointer goes through the *other* row's 500ms sensor first. If the previously-open drawer is collapsing at that moment, the layout shifts under your finger past the 6px tolerance and the gesture is discarded — exactly the "click does nothing" symptom.
+3. There is no dedicated drag handle, so the only way to drag is to long-press the row — which is the same gesture as "tap to expand", creating an inherent conflict that the delay sensor cannot resolve cleanly.
+
+The earlier offline-first refactor is not the cause; `useSyncExternalStore` reads are sync and re-renders are cheap. The symptom is purely the gesture layer.
+
+## Fix
+
+Move drag activation off the row body and onto an explicit drag handle, so taps on the row never go through the dnd-kit pointer capture.
+
+### 1. `src/components/SortableTaskRow.tsx`
+- Render a small persistent grip handle on the left edge of every row.
+- Attach `{...attributes} {...listeners}` only to that handle, not to the row wrapper.
+- Keep `setNodeRef` / transform on the wrapper so layout animations still work.
+- Handle gets `touch-action: none` so it owns its gesture; the rest of the row keeps normal click behavior.
+
+### 2. `src/routes/tasks.tsx`
+- Drop the 500ms press-and-hold activation. Use a small distance/tolerance constraint instead so a tap on the handle that doesn't move is still a click, but any movement immediately starts a drag:
+  ```ts
+  useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
+  useSensor(TouchSensor,   { activationConstraint: { distance: 6 } })
+  ```
+- No other logic changes.
+
+### Why this fixes both symptoms
+- Tapping any row (with or without another drawer open) no longer routes through a 500ms pointer-capture window, so `onClick` on the row fires immediately and is never cancelled by incidental finger movement or by layout shift from a collapsing drawer.
+- Dragging still works, but is initiated from the grip handle only — the two gestures (tap-to-expand vs drag-to-reorder) are now on disjoint hit areas and can't conflict.
+
+## Files touched
+- `src/components/SortableTaskRow.tsx` — add grip handle, move dnd listeners onto it.
+- `src/routes/tasks.tsx` — swap `delay`/`tolerance` for `distance` on both sensors.
+
+No backend, schema, or data-layer changes.

@@ -122,10 +122,12 @@ function TasksPage() {
     window.sessionStorage.removeItem("open_task_id");
   }, [tasksLoading, tasks]);
 
-  // Long-press (500ms) to activate drag; tap remains tap-to-expand.
+  // Drag is initiated from the grip handle; a small distance threshold keeps
+  // taps on the handle from being misread as drags while making any movement
+  // an immediate drag. Row body taps never reach these sensors.
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { delay: 500, tolerance: 6 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 500, tolerance: 6 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { distance: 6 } }),
   );
 
   const me = profile?.username ?? "";
