@@ -118,7 +118,7 @@ export function AdminPanel({ onClose }: Props) {
         {/* Mobile: card layout */}
         <div className="space-y-2 sm:hidden">
           {users.length === 0 && (
-            <div className="mono rounded-[3px] border border-border bg-panel px-3 py-6 text-center text-dim">no users</div>
+            <EmptyState status={status} error={errorMsg} onRetry={refresh} />
           )}
           {users.map((u) => (
             <div key={u.id} className={`rounded-[3px] border border-border bg-panel p-3 ${!u.is_active ? "opacity-60" : ""}`}>
