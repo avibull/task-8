@@ -65,7 +65,7 @@ export function PickerSheet({
         <div className="flex items-center gap-2 border-b border-border px-3 py-2">
           <Search size={14} className="text-dim" />
           <input
-            autoFocus
+
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder={placeholder ?? "Search..."}
