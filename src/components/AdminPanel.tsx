@@ -209,7 +209,7 @@ export function AdminPanel({ onClose }: Props) {
                 </tr>
               ))}
               {users.length === 0 && (
-                <tr><td colSpan={6} className="px-3 py-6 text-center text-dim">no users</td></tr>
+                <tr><td colSpan={6} className="p-0"><EmptyState status={status} error={errorMsg} onRetry={refresh} /></td></tr>
               )}
             </tbody>
           </table>
