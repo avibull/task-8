@@ -92,6 +92,7 @@ export function AdminPanel({ onClose }: Props) {
     if (!res.ok) return toast.error(res.message);
     toast.success(u.is_active ? "Deactivated" : "Activated");
     refresh();
+    void refreshProfiles();
   };
 
   return (
