@@ -47,4 +47,4 @@ export const SortableTaskRow = memo(function SortableTaskRow(props: TaskRowProps
       </div>
     </div>
   );
-}
+});
