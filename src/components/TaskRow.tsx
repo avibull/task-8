@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { memo, useState } from "react";
 import { Check } from "lucide-react";
 import type { Alert, Priority, Task } from "@/lib/types";
 import { cn } from "@/lib/utils";
