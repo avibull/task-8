@@ -53,17 +53,8 @@ export function TagsProvider({ children }: { children: ReactNode }) {
     async (id: string) => {
       const t = tags.find((x) => x.id === id);
       if (!t) return;
+      await supabase.rpc("remove_tag_from_tasks", { _tag_name: t.name });
       await supabase.from("tags").delete().eq("id", id);
-      const { data: hits } = await supabase
-        .from("tasks")
-        .select("id, tags")
-        .contains("tags", [t.name]);
-      for (const row of hits ?? []) {
-        await supabase
-          .from("tasks")
-          .update({ tags: (row.tags as string[]).filter((x) => x !== t.name) })
-          .eq("id", row.id);
-      }
       manualSync();
     },
     [tags],
