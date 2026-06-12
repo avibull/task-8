@@ -222,6 +222,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      bulk_reorder_tasks: {
+        Args: { _ids: string[]; _orders: number[] }
+        Returns: undefined
+      }
       can_edit_tags: { Args: never; Returns: boolean }
       current_username: { Args: never; Returns: string }
       get_user_phone: { Args: { _username: string }; Returns: string }
@@ -235,6 +239,7 @@ export type Database = {
           username: string
         }[]
       }
+      remove_tag_from_tasks: { Args: { _tag_name: string }; Returns: undefined }
     }
     Enums: {
       alert_status: "pending" | "acknowledged" | "scheduled"

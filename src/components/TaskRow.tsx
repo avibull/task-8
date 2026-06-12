@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { memo, useState } from "react";
 import { Check } from "lucide-react";
 import type { Alert, Priority, Task } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -26,7 +26,7 @@ interface Props {
 
 const PRIO_CYCLE: Priority[] = ["P1", "P2", "P3", "Daily", "None"];
 
-export function TaskRow({
+export const TaskRow = memo(function TaskRow({
   task, alerts, expanded, pulse, onToggleComplete, onExpand,
   onSendAlert, onChangePriority, onUpdateTags, onUpdateAssignees, onDelete,
 }: Props) {
@@ -166,4 +166,4 @@ export function TaskRow({
       )}
     </div>
   );
-}
+});

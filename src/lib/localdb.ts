@@ -93,7 +93,16 @@ function emit() {
 }
 
 function update(next: Partial<Snapshot>, persist = true) {
+  const prev = snap;
   snap = { ...snap, ...next };
+  const changed =
+    snap.tasks !== prev.tasks ||
+    snap.alerts !== prev.alerts ||
+    snap.tags !== prev.tags ||
+    snap.pending !== prev.pending ||
+    snap.conn !== prev.conn ||
+    snap.hydrated !== prev.hydrated;
+  if (!changed) return;
   if (persist) persistSoon();
   emit();
 }
@@ -156,6 +165,7 @@ export async function teardownStore() {
 // ---------- realtime reconciliation ----------
 
 function attachRealtime(username: string) {
+  if (channel) return;
   channel = supabase
     .channel(`local:${username}`)
     .on("postgres_changes", { event: "INSERT", schema: "public", table: "tasks" }, (p) => {
@@ -209,8 +219,14 @@ function onlineHandler() {
 function offlineHandler() {
   update({ conn: "offline" }, false);
 }
+let lastFocusSync = 0;
+const FOCUS_SYNC_INTERVAL = 30_000;
+
 function focusHandler() {
   if (typeof navigator !== "undefined" && navigator.onLine) {
+    const now = Date.now();
+    if (now - lastFocusSync < FOCUS_SYNC_INTERVAL) return;
+    lastFocusSync = now;
     void initialSync();
     void flush();
   }
@@ -324,17 +340,12 @@ async function runOp(op: PendingOp): Promise<"ok" | "retry" | "drop"> {
         return classify(error);
       }
       case "task.reorder": {
-        // Bulk per-row; if any fails we retry the whole op next round.
-        for (let i = 0; i < op.orderedIds.length; i++) {
-          const { error } = await supabase
-            .from("tasks")
-            .update({ sort_order: i })
-            .eq("id", op.orderedIds[i]);
-          const c = classify(error);
-          if (c === "retry") return "retry";
-          // 'drop' on a single row → continue, the others can still apply
-        }
-        return "ok";
+        const orders = op.orderedIds.map((_, i) => i);
+        const { error } = await supabase.rpc("bulk_reorder_tasks", {
+          _ids: op.orderedIds,
+          _orders: orders,
+        });
+        return classify(error);
       }
       case "alert.send": {
         const { error } = await supabase.from("alerts").insert(op.rows);
