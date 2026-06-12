@@ -2,12 +2,12 @@ import { GripVertical } from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { TaskRow } from "./TaskRow";
-import type { ComponentProps } from "react";
+import { memo, type ComponentProps } from "react";
 import { cn } from "@/lib/utils";
 
 type TaskRowProps = ComponentProps<typeof TaskRow>;
 
-export function SortableTaskRow(props: TaskRowProps) {
+export const SortableTaskRow = memo(function SortableTaskRow(props: TaskRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: props.task.id,
   });
