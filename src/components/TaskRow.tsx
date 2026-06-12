@@ -166,4 +166,4 @@ export const TaskRow = memo(function TaskRow({
       )}
     </div>
   );
-}
+});
