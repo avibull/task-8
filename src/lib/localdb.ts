@@ -93,7 +93,16 @@ function emit() {
 }
 
 function update(next: Partial<Snapshot>, persist = true) {
+  const prev = snap;
   snap = { ...snap, ...next };
+  const changed =
+    snap.tasks !== prev.tasks ||
+    snap.alerts !== prev.alerts ||
+    snap.tags !== prev.tags ||
+    snap.pending !== prev.pending ||
+    snap.conn !== prev.conn ||
+    snap.hydrated !== prev.hydrated;
+  if (!changed) return;
   if (persist) persistSoon();
   emit();
 }
