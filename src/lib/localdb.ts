@@ -219,8 +219,14 @@ function onlineHandler() {
 function offlineHandler() {
   update({ conn: "offline" }, false);
 }
+let lastFocusSync = 0;
+const FOCUS_SYNC_INTERVAL = 30_000;
+
 function focusHandler() {
   if (typeof navigator !== "undefined" && navigator.onLine) {
+    const now = Date.now();
+    if (now - lastFocusSync < FOCUS_SYNC_INTERVAL) return;
+    lastFocusSync = now;
     void initialSync();
     void flush();
   }
