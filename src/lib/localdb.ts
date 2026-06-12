@@ -165,6 +165,7 @@ export async function teardownStore() {
 // ---------- realtime reconciliation ----------
 
 function attachRealtime(username: string) {
+  if (channel) return;
   channel = supabase
     .channel(`local:${username}`)
     .on("postgres_changes", { event: "INSERT", schema: "public", table: "tasks" }, (p) => {
