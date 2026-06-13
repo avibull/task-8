@@ -159,6 +159,7 @@ function TasksPage() {
   const alertsByTask = useMemo(() => {
     const map: Record<string, Alert[]> = {};
     for (const a of alerts) {
+      if (!a.task_id) continue;
       if (!map[a.task_id]) map[a.task_id] = [];
       map[a.task_id].push(a);
     }
