@@ -4,8 +4,21 @@ import { CSS } from "@dnd-kit/utilities";
 import { TaskRow } from "./TaskRow";
 import { memo, type ComponentProps } from "react";
 import { cn } from "@/lib/utils";
+import type { Alert, Task } from "@/lib/types";
 
 type TaskRowProps = ComponentProps<typeof TaskRow>;
+
+function areEqual(prev: TaskRowProps, next: TaskRowProps): boolean {
+  // Only re-render this row if its own data changed.
+  // Intentionally ignore new function references — callbacks use
+  // functional setState or stable IDs so stale refs are safe.
+  return (
+    prev.task === next.task &&           // task object reference (changes when task data changes)
+    prev.expanded === next.expanded &&   // drawer open/close
+    prev.pulse === next.pulse &&         // highlight pulse
+    prev.alerts === next.alerts          // this task's alerts (pre-filtered by parent)
+  );
+}
 
 export const SortableTaskRow = memo(function SortableTaskRow(props: TaskRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -47,4 +60,4 @@ export const SortableTaskRow = memo(function SortableTaskRow(props: TaskRowProps
       </div>
     </div>
   );
-});
+}, areEqual);
