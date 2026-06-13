@@ -53,8 +53,15 @@ export function TagsProvider({ children }: { children: ReactNode }) {
     async (id: string) => {
       const t = tags.find((x) => x.id === id);
       if (!t) return;
-      await supabase.rpc("remove_tag_from_tasks", { _tag_name: t.name });
-      await supabase.from("tags").delete().eq("id", id);
+      const { error: rpcError } = await supabase.rpc("remove_tag_from_tasks", { _tag_name: t.name });
+      if (rpcError) {
+        console.error("Failed to remove tag from tasks:", rpcError.message);
+      }
+      const { error: delError } = await supabase.from("tags").delete().eq("id", id);
+      if (delError) {
+        console.error("Failed to delete tag:", delError.message, delError.code);
+        return;
+      }
       manualSync();
     },
     [tags],
