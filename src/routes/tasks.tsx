@@ -180,7 +180,7 @@ function TasksPage() {
     expanded: expandedId === t.id,
     pulse: pulseId === t.id,
     onToggleComplete: () => toggle(t),
-    onExpand: () => setExpandedId(expandedId === t.id ? null : t.id),
+    onExpand: () => setExpandedId((prev) => (prev === t.id ? null : t.id)),
     onSendAlert: () => setSheetTask(t),
     onChangePriority: (p: Task["priority"]) => update(t.id, { priority: p }),
     onUpdateTags: (tags: string[]) => update(t.id, { tags }),
