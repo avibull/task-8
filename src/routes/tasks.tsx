@@ -187,7 +187,7 @@ function TasksPage() {
 
   const rowProps = (t: Task) => ({
     task: t,
-    alerts,
+    alerts: alertsByTask[t.id] ?? [],
     expanded: expandedId === t.id,
     pulse: pulseId === t.id,
     onToggleComplete: () => toggle(t),
