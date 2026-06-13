@@ -211,7 +211,7 @@ function TasksPage() {
         setSheetTask(t);
       }}
     >
-      <div className="flex min-h-screen flex-col bg-background">
+      <div className="flex h-dvh flex-col bg-background overflow-hidden">
         <header className="flex items-center justify-between border-b border-border bg-panel px-4 py-3">
           <h1 className="sr-only">Tasks — Collaborative management</h1>
           <div className="mono flex items-center gap-2 text-base font-bold">
