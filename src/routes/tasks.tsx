@@ -180,7 +180,7 @@ function TasksPage() {
     expanded: expandedId === t.id,
     pulse: pulseId === t.id,
     onToggleComplete: () => toggle(t),
-    onExpand: () => setExpandedId(expandedId === t.id ? null : t.id),
+    onExpand: () => setExpandedId((prev) => (prev === t.id ? null : t.id)),
     onSendAlert: () => setSheetTask(t),
     onChangePriority: (p: Task["priority"]) => update(t.id, { priority: p }),
     onUpdateTags: (tags: string[]) => update(t.id, { tags }),
@@ -211,7 +211,7 @@ function TasksPage() {
         setSheetTask(t);
       }}
     >
-      <div className="flex min-h-screen flex-col bg-background">
+      <div className="flex h-dvh flex-col bg-background overflow-hidden">
         <header className="flex items-center justify-between border-b border-border bg-panel px-4 py-3">
           <h1 className="sr-only">Tasks — Collaborative management</h1>
           <div className="mono flex items-center gap-2 text-base font-bold">
