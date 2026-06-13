@@ -253,7 +253,10 @@ function detachConnectivity() {
 async function initialSync() {
   if (!currentUserKey) return;
 
-  if (typeof navigator !== "undefined" && !navigator.onLine) return;
+  if (typeof navigator !== "undefined" && !navigator.onLine) {
+    update({ hydrated: true });
+    return;
+  }
 
   const ac = new AbortController();
   const timeout = setTimeout(() => ac.abort(), 8000);
