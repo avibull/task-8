@@ -252,9 +252,15 @@ function detachConnectivity() {
  */
 async function initialSync() {
   if (!currentUserKey) return;
-  if (typeof navigator !== "undefined" && !navigator.onLine) return;
+
+  if (typeof navigator !== "undefined" && !navigator.onLine) {
+    update({ hydrated: true });
+    return;
+  }
+
   const ac = new AbortController();
   const timeout = setTimeout(() => ac.abort(), 8000);
+
   try {
     const [tasksRes, alertsRes, tagsRes] = await Promise.all([
       supabase.from("tasks").select("*").limit(1000).abortSignal(ac.signal),
@@ -262,18 +268,19 @@ async function initialSync() {
         .from("alerts")
         .select("*")
         .or(`sender.eq.${currentUserKey},recipient.eq.${currentUserKey}`)
-        .order("created_at", { ascending: false })
-        .limit(200)
         .abortSignal(ac.signal),
-      supabase.from("tags").select("*").order("name").abortSignal(ac.signal),
+      supabase.from("tags").select("*").abortSignal(ac.signal),
     ]);
-    const next: Partial<Snapshot> = {};
-    if (!tasksRes.error && tasksRes.data) next.tasks = tasksRes.data as Task[];
-    if (!alertsRes.error && alertsRes.data) next.alerts = alertsRes.data as Alert[];
-    if (!tagsRes.error && tagsRes.data) next.tags = tagsRes.data as Tag[];
-    if (Object.keys(next).length > 0) update(next);
-  } catch {
-    // network blip — cached mirror stays
+
+    update({
+      tasks: tasksRes.data ?? snap.tasks,
+      alerts: alertsRes.data ?? snap.alerts,
+      tags: tagsRes.data ?? snap.tags,
+      hydrated: true,
+    });
+  } catch (_e) {
+    // Always set hydrated even on failure — never leave app on black screen
+    update({ hydrated: true });
   } finally {
     clearTimeout(timeout);
   }
@@ -315,10 +322,7 @@ async function flush() {
   } finally {
     flushing = false;
     update(
-      {
-        conn:
-          typeof navigator !== "undefined" && !navigator.onLine ? "offline" : "online",
-      },
+      { conn: typeof navigator !== "undefined" && !navigator.onLine ? "offline" : "online" },
       false,
     );
   }
@@ -364,7 +368,6 @@ async function runOp(op: PendingOp): Promise<"ok" | "retry" | "drop"> {
           .insert({ ...op.row, meta: op.row.meta as never });
         return classify(error);
       }
-
     }
   } catch {
     return "retry";
@@ -448,9 +451,7 @@ export const mutate = {
 
   reorderTasks(orderedIds: string[]) {
     const idx = new Map(orderedIds.map((id, i) => [id, i]));
-    const next = snap.tasks.map((t) =>
-      idx.has(t.id) ? { ...t, sort_order: idx.get(t.id)! } : t,
-    );
+    const next = snap.tasks.map((t) => (idx.has(t.id) ? { ...t, sort_order: idx.get(t.id)! } : t));
     update({ tasks: next });
     enqueue({ id: newId(), kind: "task.reorder", orderedIds });
   },
@@ -485,7 +486,6 @@ export const mutate = {
     update({ alerts: [...local, ...snap.alerts] });
     enqueue({ id: newId(), kind: "alert.send", rows });
   },
-
 
   ackAlert(alertId: string) {
     const i = snap.alerts.findIndex((a) => a.id === alertId);
