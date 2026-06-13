@@ -155,6 +155,16 @@ function TasksPage() {
 
   const unread = alerts.filter((a) => a.recipient === profile?.username && a.status === "pending").length;
 
+  // Pre-filter alerts per task so rows only re-render when their own alerts change
+  const alertsByTask = useMemo(() => {
+    const map: Record<string, Alert[]> = {};
+    for (const a of alerts) {
+      if (!map[a.task_id]) map[a.task_id] = [];
+      map[a.task_id].push(a);
+    }
+    return map;
+  }, [alerts]);
+
   if (loading || !profile) {
     return <div className="mono flex min-h-screen items-center justify-center bg-background text-xs text-dim">loading…</div>;
   }
