@@ -322,10 +322,7 @@ async function flush() {
   } finally {
     flushing = false;
     update(
-      {
-        conn:
-          typeof navigator !== "undefined" && !navigator.onLine ? "offline" : "online",
-      },
+      { conn: typeof navigator !== "undefined" && !navigator.onLine ? "offline" : "online" },
       false,
     );
   }
@@ -371,7 +368,6 @@ async function runOp(op: PendingOp): Promise<"ok" | "retry" | "drop"> {
           .insert({ ...op.row, meta: op.row.meta as never });
         return classify(error);
       }
-
     }
   } catch {
     return "retry";
@@ -455,9 +451,7 @@ export const mutate = {
 
   reorderTasks(orderedIds: string[]) {
     const idx = new Map(orderedIds.map((id, i) => [id, i]));
-    const next = snap.tasks.map((t) =>
-      idx.has(t.id) ? { ...t, sort_order: idx.get(t.id)! } : t,
-    );
+    const next = snap.tasks.map((t) => (idx.has(t.id) ? { ...t, sort_order: idx.get(t.id)! } : t));
     update({ tasks: next });
     enqueue({ id: newId(), kind: "task.reorder", orderedIds });
   },
@@ -492,7 +486,6 @@ export const mutate = {
     update({ alerts: [...local, ...snap.alerts] });
     enqueue({ id: newId(), kind: "alert.send", rows });
   },
-
 
   ackAlert(alertId: string) {
     const i = snap.alerts.findIndex((a) => a.id === alertId);
