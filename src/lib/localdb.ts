@@ -252,9 +252,12 @@ function detachConnectivity() {
  */
 async function initialSync() {
   if (!currentUserKey) return;
+
   if (typeof navigator !== "undefined" && !navigator.onLine) return;
+
   const ac = new AbortController();
   const timeout = setTimeout(() => ac.abort(), 8000);
+
   try {
     const [tasksRes, alertsRes, tagsRes] = await Promise.all([
       supabase.from("tasks").select("*").limit(1000).abortSignal(ac.signal),
@@ -262,18 +265,19 @@ async function initialSync() {
         .from("alerts")
         .select("*")
         .or(`sender.eq.${currentUserKey},recipient.eq.${currentUserKey}`)
-        .order("created_at", { ascending: false })
-        .limit(200)
         .abortSignal(ac.signal),
-      supabase.from("tags").select("*").order("name").abortSignal(ac.signal),
+      supabase.from("tags").select("*").abortSignal(ac.signal),
     ]);
-    const next: Partial<Snapshot> = {};
-    if (!tasksRes.error && tasksRes.data) next.tasks = tasksRes.data as Task[];
-    if (!alertsRes.error && alertsRes.data) next.alerts = alertsRes.data as Alert[];
-    if (!tagsRes.error && tagsRes.data) next.tags = tagsRes.data as Tag[];
-    if (Object.keys(next).length > 0) update(next);
-  } catch {
-    // network blip — cached mirror stays
+
+    update({
+      tasks: tasksRes.data ?? snap.tasks,
+      alerts: alertsRes.data ?? snap.alerts,
+      tags: tagsRes.data ?? snap.tags,
+      hydrated: true,
+    });
+  } catch (_e) {
+    // Always set hydrated even on failure — never leave app on black screen
+    update({ hydrated: true });
   } finally {
     clearTimeout(timeout);
   }
