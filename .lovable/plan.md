@@ -1,40 +1,42 @@
-## What you're seeing
+## F11 — FCM Push Notifications
 
-- Settings → **Manage users** and the task drawer's **ASSIGN** sheet show no users.
-- Already-assigned usernames still render on old tasks because those are just strings stored in `tasks.assigned_to` — rendering them never reads the profile list.
+Add Firebase Cloud Messaging so task8 alerts arrive when the app is closed, the phone is locked, or Chrome is backgrounded. Urgent alerts repeat every 10s for up to 2 minutes.
 
-## Root cause
+### 1. Secrets
+Add FCM_PROJECT_ID, FCM_CLIENT_EMAIL, FCM_PRIVATE_KEY, FCM_VAPID_KEY to the project's edge function secrets (values provided in the brief).
 
-The database is fine. I confirmed:
-- 3 active rows in `public.profiles` (admin, prachi, avinash).
-- `public.list_active_profiles()` (SECURITY DEFINER) returns all 3.
-- `EXECUTE` and `SELECT` grants for `authenticated` are in place.
+### 2. Database
+New migration: `public.fcm_tokens` (user_id → auth.users, username, token, unique(username, token)) with RLS so users can only manage their own rows. Includes required GRANTs to `authenticated` and `service_role`.
 
-So the gap is on the client side. There are two independent code paths that load the user list, and **both silently swallow failures and never show a loading/error state** — so any transient failure leaves the list permanently empty:
+### 3. Edge function: `send-fcm-notification`
+- Builds a Google OAuth2 access token from the service account (RS256 JWT via Web Crypto).
+- Looks up all FCM tokens for the recipient, sends a v1 FCM message per token with `notification`, `data`, and `webpush` block (icon, badge, `requireInteraction` for urgent, tag = alertId, link `/tasks`).
+- Deletes any tokens that come back as invalid/unregistered.
+- Standard CORS + OPTIONS handler.
 
-1. **ASSIGN sheet** (`src/components/UserPicker.tsx`) calls `supabase.rpc("list_active_profiles")` inside a fire-and-forget `.then(...)`. If the call errors or returns `null`, `profiles` stays `[]` forever for the lifetime of that picker mount, and `PickerSheet` just shows "no matches". There is no retry, no toast, no console log.
-2. **Settings → Manage users** (`src/components/AdminPanel.tsx`) calls the `listUsers` server fn, which depends on the request bearer being attached by `attachSupabaseAuth`. The wrap-in-`<Outlet />` admin overlay is mounted inside `/settings`, which is **not** under `_authenticated/`, so on a hard refresh the SSR pass can race ahead of the session restore. If the bearer is missing when the panel opens, `requireSupabaseAuth` 401s → toast → empty list.
+### 4. Frontend Firebase setup
+- `bun add firebase`
+- `src/lib/firebase.ts`: initializes the app once, exposes `registerFCMToken(username)` (requests Notification permission, calls `getToken` with VAPID key and the ready service worker registration) and `onForegroundMessage(cb)`.
+- `public/firebase-messaging-sw.js`: background message handler that shows the notification, manages an in-SW map of urgent repeat timers (10s interval, 2-min cap), and a `notificationclick` handler that stops repeats and focuses/opens `/tasks`.
 
-The shared cache in `src/lib/profilesCache.ts` makes case 1 worse: it caches `cache = []` on the first failed call (`((data) ?? [])`) and then returns that empty array forever — so `useProfileByUsername` also locks into "no profiles" until a full reload.
+### 5. Token registration on login
+In `src/contexts/AuthContext.tsx`, after `setProfile(data)` in `loadProfile`, fire-and-forget `saveFCMToken(data.username, uid)` which calls `registerFCMToken` and upserts into `fcm_tokens` with `onConflict: "username,token"`.
 
-The reason old tasks still display assignees is unrelated to all of this: `TaskRow`/`UserMention` only need the `@username` string already stored on the task row to render the chip.
+### 6. Push on alert send
+In `src/lib/useAlerts.ts`, after the local `sendAlerts` mutation, fire-and-forget a `supabase.functions.invoke("send-fcm-notification", …)` per recipient with alertId, type, title (urgent vs normal), and the task text. Failures are swallowed — DB row is the source of truth.
 
-## Plan
+To get `task_text` cleanly, look up the task from the store snapshot inside `send()` before invoking.
 
-1. **Add visible loading + error states** to `UserPicker` and `AdminPanel`. Empty `[]` and "still loading" and "failed to load" must look different. This alone tells us which of the two failure modes is happening.
-2. **Fix the silent cache poisoning in `profilesCache.ts`**: only set `cache` when the RPC actually returns rows; on error, leave `cache = null` so the next consumer retries. Also expose a manual `refreshProfiles()` and call it after admin create/delete and on `SIGNED_IN`.
-3. **Make `UserPicker` reuse `useProfiles()`** instead of its own one-shot RPC, so we only have one place to fix and it shares the (now-correct) cache.
-4. **Make Manage users robust to a missing bearer**: on `refresh()` failure, re-check the session once and retry; surface the actual error message in the empty-state copy instead of just toasting. (Longer-term, `/settings` and the admin overlay belong under `_authenticated/`, but that's a bigger move — flag it as a follow-up, don't do it in this pass.)
-5. Verify by opening Settings → Manage users and the ASSIGN sheet, confirming all 3 users appear, then hard-refreshing to confirm it still works cold.
+### 7. Foreground handling
+In `src/routes/tasks.tsx`, add a `useEffect` that subscribes to `onForegroundMessage` and shows a sonner toast (urgent → `Infinity` duration with a "View" action that opens the alerts panel; normal → 5s). Also calls `manualSync()` so the alert appears in the list immediately.
+
+### Technical notes
+- Service worker file is `public/firebase-messaging-sw.js` — the messaging SDK auto-registers it. The existing `public/sw.js` kill-switch is untouched (per PWA skill: messaging workers are exempt from the app-shell SW guards).
+- `firebase-messaging-sw.js` uses the compat SDK via `importScripts` from gstatic, so no bundler changes are needed.
+- Edge function uses `SUPABASE_SERVICE_ROLE_KEY` to read tokens for arbitrary recipients (bypassing RLS) and to delete stale ones.
+- Firebase web config (apiKey, etc.) is publishable and lives in source.
+- iOS Safari: push works only when the PWA is installed to the home screen and the user has granted notification permission — expected platform behavior, no extra code.
 
 ### Files touched
-
-- `src/lib/profilesCache.ts` — don't cache empty/error results; add `refreshProfiles()`; subscribe to `onAuthStateChange` SIGNED_IN to refresh.
-- `src/components/UserPicker.tsx` — switch to `useProfiles()`; render loading + error rows.
-- `src/components/AdminPanel.tsx` — track `status: idle | loading | error | ready`; show the error message in the empty cell; retry button.
-- No DB / RLS / migration changes.
-
-### Out of scope
-
-- Moving `/settings` under `_authenticated/`.
-- Changing how `tasks.assigned_to` stores usernames vs. user IDs.
+- New: `supabase/migrations/<ts>_fcm_tokens.sql`, `supabase/functions/send-fcm-notification/index.ts`, `src/lib/firebase.ts`, `public/firebase-messaging-sw.js`
+- Edited: `src/contexts/AuthContext.tsx`, `src/lib/useAlerts.ts`, `src/routes/tasks.tsx`, `package.json` (firebase dep)
