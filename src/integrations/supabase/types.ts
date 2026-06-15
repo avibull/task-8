@@ -109,6 +109,33 @@ export type Database = {
           },
         ]
       }
+      fcm_tokens: {
+        Row: {
+          created_at: string
+          id: string
+          token: string
+          updated_at: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          token: string
+          updated_at?: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          token?: string
+          updated_at?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           can_edit_tags: boolean
