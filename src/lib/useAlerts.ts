@@ -123,6 +123,28 @@ export function useAlerts() {
         meta: { recipient: r, alert_type: params.type },
       });
     }
+
+    // Fire-and-forget push notifications for "now" alerts. Scheduled
+    // alerts are pushed when their scheduled time fires elsewhere.
+    if ((params.trigger ?? "now") === "now") {
+      const task = store.get().tasks.find((t) => t.id === params.task_id);
+      const taskText = task?.text ?? "Task ping";
+      const urgent = params.type === "urgent";
+      for (const row of rows) {
+        void supabase.functions.invoke("send-fcm-notification", {
+          body: {
+            recipient: row.recipient,
+            alertId: row.id,
+            type: params.type,
+            title: urgent
+              ? `URGENT ping from @${profile.username}`
+              : `Ping from @${profile.username}`,
+            body: taskText,
+            sender: profile.username,
+          },
+        });
+      }
+    }
   };
 
   const refetch = async () => {
