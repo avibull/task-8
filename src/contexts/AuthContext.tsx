@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Profile } from "@/lib/types";
+import { saveFCMToken } from "@/lib/firebase";
 import { bootStore, teardownStore } from "@/lib/localdb";
 
 interface AuthCtx {
@@ -89,6 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (cached) {
       setProfile(cached);
       void bootStore(cached.username);
+      void saveFCMToken(cached.username, uid);
     }
     setLoading(false);
 
@@ -105,6 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(data);
     writeCachedProfile(data);
     void bootStore(data.username);
+    void saveFCMToken(data.username, uid);
   };
 
 
