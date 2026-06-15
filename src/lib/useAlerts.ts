@@ -2,6 +2,7 @@ import { useEffect, useRef, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { store, mutate, manualSync } from "@/lib/localdb";
+import { supabase } from "@/integrations/supabase/client";
 import { ensureAudioReady, playChime, playDing } from "@/lib/sound";
 import { logActivity } from "@/lib/activity";
 import type { Alert } from "@/lib/types";
