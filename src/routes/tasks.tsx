@@ -23,6 +23,9 @@ import { SortControl, type SortKey } from "@/components/SortControl";
 import { MentionProvider } from "@/contexts/MentionContext";
 import { TaskListSkeleton } from "@/components/TaskListSkeleton";
 import { SyncStatus } from "@/components/SyncStatus";
+import { onForegroundMessage } from "@/lib/firebase";
+import { toast } from "sonner";
+import { manualSync } from "@/lib/localdb";
 
 import type { Alert, Priority, Task } from "@/lib/types";
 
@@ -101,6 +104,27 @@ function TasksPage() {
   useEffect(() => {
     if (!loading && !profile) nav({ to: "/login", replace: true });
   }, [loading, profile, nav]);
+
+  // Foreground push messages → in-app toast + immediate sync so the alert
+  // appears in the list without waiting for realtime.
+  useEffect(() => {
+    const unsub = onForegroundMessage((payload) => {
+      const data = payload.data ?? {};
+      const urgent = data.type === "urgent";
+      const title = payload.notification?.title ?? "task8";
+      const body = payload.notification?.body ?? "";
+      if (urgent) {
+        toast.error(`${title} — ${body}`, {
+          duration: Infinity,
+          action: { label: "View", onClick: () => setAlertsOpen(true) },
+        });
+      } else {
+        toast(`${title} — ${body}`, { duration: 5000 });
+      }
+      manualSync();
+    });
+    return unsub;
+  }, []);
 
   // Deep-link from Activity log: open and scroll to the requested task.
   useEffect(() => {
