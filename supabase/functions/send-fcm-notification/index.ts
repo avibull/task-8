@@ -125,21 +125,21 @@ Deno.serve(async (req) => {
         const message = {
           message: {
             token,
-            notification: { title, body: msgBody },
+            // Data-only push: no top-level "notification" field so the
+            // service worker's onBackgroundMessage always runs (needed for
+            // urgent repeat logic on Android/Chrome closed-app pushes).
             data: {
               alertId,
               type,
               link: "/tasks",
+              title,
+              body: msgBody,
             },
             webpush: {
-              notification: {
-                icon: "/icon-192.svg",
-                badge: "/icon-192.svg",
-                tag: alertId,
-                requireInteraction: urgent,
-                renotify: urgent,
+              headers: {
+                TTL: "60",
+                Urgency: urgent ? "high" : "normal",
               },
-              fcm_options: { link: "/tasks" },
             },
           },
         };

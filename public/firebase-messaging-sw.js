@@ -43,14 +43,14 @@ messaging.onBackgroundMessage((payload) => {
   const data = payload.data || {};
   const alertId = data.alertId || `a-${Date.now()}`;
   const urgent = data.type === "urgent";
-  const title = (payload.notification && payload.notification.title) || "task8";
-  const body = (payload.notification && payload.notification.body) || "";
+  const title = data.title || "task·8";
+  const body = data.body || "";
 
   showNotif(title, body, alertId, urgent);
 
   if (urgent && !urgentRepeats.has(alertId)) {
     const interval = setInterval(() => {
-      showNotif(title, body, alertId, true);
+      showNotif("⚡ " + title, body, alertId, true);
     }, 10000);
     const stopTimer = setTimeout(() => stopUrgent(alertId), 120000);
     urgentRepeats.set(alertId, { interval, stopTimer });

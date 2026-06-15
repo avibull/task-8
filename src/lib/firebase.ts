@@ -67,11 +67,27 @@ export async function registerFCMToken(): Promise<string | null> {
       return null;
     }
 
-    // Ensure the messaging SW is registered/ready before getToken.
+    // Unregister any old firebase-messaging-sw.js with non-root scope
+    // so we can re-register at root scope (required for reliable
+    // background delivery when the PWA is closed).
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    for (const reg of registrations) {
+      const url = reg.active?.scriptURL || "";
+      if (url.includes("firebase-messaging-sw.js") && !reg.scope.endsWith("/")) {
+        try {
+          await reg.unregister();
+        } catch {}
+      }
+    }
+
+    // Register the messaging SW at root scope.
     const swReg = await navigator.serviceWorker.register(
       "/firebase-messaging-sw.js",
-      { scope: "/firebase-cloud-messaging-push-scope" },
+      { scope: "/" },
     );
+    try {
+      await swReg.update();
+    } catch {}
     await navigator.serviceWorker.ready;
 
     const token = await getToken(getMessagingInstance(), {
