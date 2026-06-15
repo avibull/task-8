@@ -90,6 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (cached) {
       setProfile(cached);
       void bootStore(cached.username);
+      void saveFCMToken(cached.username, uid);
     }
     setLoading(false);
 
