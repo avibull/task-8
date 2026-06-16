@@ -149,38 +149,6 @@ export const TaskRow = memo(function TaskRow({
 
       {expanded && (
         <div className="border-t border-border bg-panel-2 px-3 py-3">
-          {editing ? (
-            <div className="mb-2 flex items-center gap-1.5">
-              <input
-                autoFocus
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    const v = draft.trim();
-                    if (v && v !== task.text) onUpdateText(v);
-                    setEditing(false);
-                  } else if (e.key === "Escape") {
-                    setDraft(task.text);
-                    setEditing(false);
-                  }
-                }}
-                className="mono flex-1 rounded-[3px] border border-border bg-panel px-2 py-2 text-sm text-foreground focus:border-accent-lime focus:outline-none"
-              />
-              <button
-                onClick={() => {
-                  const v = draft.trim();
-                  if (v && v !== task.text) onUpdateText(v);
-                  setEditing(false);
-                }}
-                className="mono rounded-[3px] border border-accent-lime bg-panel px-2 py-2 text-[10px] uppercase text-accent-lime"
-              >Save</button>
-              <button
-                onClick={() => { setDraft(task.text); setEditing(false); }}
-                className="mono rounded-[3px] border border-border bg-panel px-2 py-2 text-[10px] uppercase text-dim"
-              >Cancel</button>
-            </div>
-          ) : null}
           <div className="grid grid-cols-3 gap-1.5">
             <button onClick={onSendAlert} className="mono rounded-[3px] border border-accent-lime bg-panel px-1 py-2 text-[10px] uppercase text-accent-lime">Alert</button>
             <button
