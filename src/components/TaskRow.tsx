@@ -149,7 +149,7 @@ export const TaskRow = memo(function TaskRow({
 
       {expanded && (
         <div className="border-t border-border bg-panel-2 px-3 py-3">
-          <div className="grid grid-cols-3 gap-1.5">
+          <div className="grid grid-cols-5 gap-1.5">
             <button onClick={onSendAlert} className="mono rounded-[3px] border border-accent-lime bg-panel px-1 py-2 text-[10px] uppercase text-accent-lime">Alert</button>
             <button
               onClick={() => canAssign && setShowAssign(true)}
