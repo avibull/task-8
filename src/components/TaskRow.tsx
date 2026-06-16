@@ -20,6 +20,7 @@ interface Props {
   onChangePriority: (p: Priority) => void;
   onUpdateTags: (tags: string[]) => void;
   onUpdateAssignees: (assigned_to: string[]) => void;
+  onUpdateText: (text: string) => void;
   onDelete: () => void;
 }
 
