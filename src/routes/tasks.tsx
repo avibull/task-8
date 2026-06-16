@@ -220,6 +220,7 @@ function TasksPage() {
     onChangePriority: (p: Task["priority"]) => update(t.id, { priority: p }),
     onUpdateTags: (tags: string[]) => update(t.id, { tags }),
     onUpdateAssignees: (assigned_to: string[]) => update(t.id, { assigned_to }),
+    onUpdateText: (text: string) => update(t.id, { text }),
     onDelete: () => { remove(t.id); setExpandedId(null); },
   });
 

@@ -20,6 +20,7 @@ interface Props {
   onChangePriority: (p: Priority) => void;
   onUpdateTags: (tags: string[]) => void;
   onUpdateAssignees: (assigned_to: string[]) => void;
+  onUpdateText: (text: string) => void;
   onDelete: () => void;
 }
 
@@ -28,12 +29,14 @@ const PRIO_CYCLE: Priority[] = ["P1", "P2", "P3", "Daily", "None"];
 
 export const TaskRow = memo(function TaskRow({
   task, alerts, expanded, pulse, onToggleComplete, onExpand,
-  onSendAlert, onChangePriority, onUpdateTags, onUpdateAssignees, onDelete,
+  onSendAlert, onChangePriority, onUpdateTags, onUpdateAssignees, onUpdateText, onDelete,
 }: Props) {
   const { profile } = useAuth();
   const taskAlerts = alerts.filter((a) => a.task_id === task.id);
   const [showAssign, setShowAssign] = useState(false);
   const [showTags, setShowTags] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(task.text);
 
   const canAssign = !!profile && (profile.is_admin || task.created_by === profile.username);
   const isMine = profile?.username === task.created_by;
@@ -103,7 +106,39 @@ export const TaskRow = memo(function TaskRow({
 
       {expanded && (
         <div className="border-t border-border bg-panel-2 px-3 py-3">
-          <div className="grid grid-cols-5 gap-1.5">
+          {editing ? (
+            <div className="mb-2 flex items-center gap-1.5">
+              <input
+                autoFocus
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    const v = draft.trim();
+                    if (v && v !== task.text) onUpdateText(v);
+                    setEditing(false);
+                  } else if (e.key === "Escape") {
+                    setDraft(task.text);
+                    setEditing(false);
+                  }
+                }}
+                className="mono flex-1 rounded-[3px] border border-border bg-panel px-2 py-2 text-sm text-foreground focus:border-accent-lime focus:outline-none"
+              />
+              <button
+                onClick={() => {
+                  const v = draft.trim();
+                  if (v && v !== task.text) onUpdateText(v);
+                  setEditing(false);
+                }}
+                className="mono rounded-[3px] border border-accent-lime bg-panel px-2 py-2 text-[10px] uppercase text-accent-lime"
+              >Save</button>
+              <button
+                onClick={() => { setDraft(task.text); setEditing(false); }}
+                className="mono rounded-[3px] border border-border bg-panel px-2 py-2 text-[10px] uppercase text-dim"
+              >Cancel</button>
+            </div>
+          ) : null}
+          <div className="grid grid-cols-3 gap-1.5">
             <button onClick={onSendAlert} className="mono rounded-[3px] border border-accent-lime bg-panel px-1 py-2 text-[10px] uppercase text-accent-lime">Alert</button>
             <button
               onClick={() => canAssign && setShowAssign(true)}
@@ -122,6 +157,10 @@ export const TaskRow = memo(function TaskRow({
               <PriorityBadge p={task.priority} />
             </button>
             <button onClick={() => setShowTags(true)} className="mono rounded-[3px] border border-border bg-panel px-1 py-2 text-[10px] uppercase">Tags</button>
+            <button
+              onClick={() => { setDraft(task.text); setEditing((v) => !v); }}
+              className="mono rounded-[3px] border border-border bg-panel px-1 py-2 text-[10px] uppercase"
+            >Edit</button>
             <button onClick={onDelete} className="mono rounded-[3px] border border-[color:var(--p1)] bg-panel px-1 py-2 text-[10px] uppercase text-[color:var(--p1)]">Delete</button>
           </div>
 
