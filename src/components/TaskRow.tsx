@@ -61,7 +61,6 @@ export const TaskRow = memo(function TaskRow({
     <div id={`task-${task.id}`} className={cn("border-b border-border", pulse && "ring-2 ring-accent-lime ring-inset")}>
 
       <div
-        onClick={onExpand}
         className={cn(
           "px-3 py-2.5 active:bg-panel-2",
           task.completed && "opacity-50"
@@ -78,9 +77,53 @@ export const TaskRow = memo(function TaskRow({
             {task.completed && <Check size={12} className="text-background" />}
           </button>
           <PriorityBadge p={task.priority} />
-          <div className={cn("min-w-0 flex-1 truncate text-sm", task.completed && "line-through")}>
-            {task.text}
-          </div>
+          {expanded && editing ? (
+            <input
+              autoFocus
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onBlur={() => {
+                const v = draft.trim();
+                if (v && v !== task.text) onUpdateText(v);
+                setEditing(false);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  const v = draft.trim();
+                  if (v && v !== task.text) onUpdateText(v);
+                  setEditing(false);
+                } else if (e.key === "Escape") {
+                  setDraft(task.text);
+                  setEditing(false);
+                }
+              }}
+              className="mono min-w-0 flex-1 rounded-[3px] border border-accent-lime bg-panel px-2 py-1 text-sm text-foreground focus:outline-none"
+            />
+          ) : (
+            <div
+              onClick={() => {
+                if (expanded) {
+                  setDraft(task.text);
+                  setEditing(true);
+                } else {
+                  onExpand();
+                }
+              }}
+              className={cn("min-w-0 flex-1 truncate text-sm cursor-text", task.completed && "line-through")}
+            >
+              {task.text}
+            </div>
+          )}
+          {!editing && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onExpand(); }}
+              className="mono shrink-0 text-[10px] uppercase text-dim"
+              aria-label={expanded ? "Collapse" : "Expand"}
+            >
+              {expanded ? "▴" : "▾"}
+            </button>
+          )}
         </div>
         <div
           className="mono mt-1 flex items-center gap-x-1.5 overflow-x-auto whitespace-nowrap text-[10px] [&::-webkit-scrollbar]:hidden"
