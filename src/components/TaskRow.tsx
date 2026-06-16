@@ -29,12 +29,14 @@ const PRIO_CYCLE: Priority[] = ["P1", "P2", "P3", "Daily", "None"];
 
 export const TaskRow = memo(function TaskRow({
   task, alerts, expanded, pulse, onToggleComplete, onExpand,
-  onSendAlert, onChangePriority, onUpdateTags, onUpdateAssignees, onDelete,
+  onSendAlert, onChangePriority, onUpdateTags, onUpdateAssignees, onUpdateText, onDelete,
 }: Props) {
   const { profile } = useAuth();
   const taskAlerts = alerts.filter((a) => a.task_id === task.id);
   const [showAssign, setShowAssign] = useState(false);
   const [showTags, setShowTags] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(task.text);
 
   const canAssign = !!profile && (profile.is_admin || task.created_by === profile.username);
   const isMine = profile?.username === task.created_by;
