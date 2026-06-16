@@ -168,10 +168,6 @@ export const TaskRow = memo(function TaskRow({
               <PriorityBadge p={task.priority} />
             </button>
             <button onClick={() => setShowTags(true)} className="mono rounded-[3px] border border-border bg-panel px-1 py-2 text-[10px] uppercase">Tags</button>
-            <button
-              onClick={() => { setDraft(task.text); setEditing((v) => !v); }}
-              className="mono rounded-[3px] border border-border bg-panel px-1 py-2 text-[10px] uppercase"
-            >Edit</button>
             <button onClick={onDelete} className="mono rounded-[3px] border border-[color:var(--p1)] bg-panel px-1 py-2 text-[10px] uppercase text-[color:var(--p1)]">Delete</button>
           </div>
 
